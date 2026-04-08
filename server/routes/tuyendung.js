@@ -1,41 +1,46 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
 
-// 1. Lấy toàn bộ danh sách tin tuyển dụng: GET /api/jobs
-router.get('/', async (req, res) => {
-    try {
-        const [rows] = await db.query('SELECT * FROM jobs ORDER BY created_at DESC');
-        res.json(rows);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
+module.exports = (db) => {
+    // 1. Lấy danh sách tin tuyển dụng (Sắp xếp tin mới nhất lên đầu)
+    router.get('/', (req, res) => {
+        const sql = "SELECT * FROM jobs ORDER BY created_at DESC";
+        db.query(sql, (err, data) => {
+            if (err) return res.status(500).json({ error: "Lỗi lấy dữ liệu" });
+            res.json(data);
+        });
+    });
 
-// 2. Lấy CHI TIẾT 1 tin tuyển dụng theo ID: GET /api/jobs/:id
-router.get('/:id', async (req, res) => {
-    const { id } = req.params;
-    try {
-        const [rows] = await db.query('SELECT * FROM jobs WHERE id = ?', [id]);
-        if (rows.length > 0) {
-            res.json(rows[0]);
-        } else {
-            res.status(404).json({ message: "Không tìm thấy tin tuyển dụng này!" });
-        }
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
+    // 2. Đăng tin mới
+    router.post('/', (req, res) => {
+        const { title, description, salary } = req.body;
+        const sql = "INSERT INTO jobs (title, description, salary) VALUES (?, ?, ?)";
+        db.query(sql, [title, description, salary], (err, result) => {
+            if (err) return res.status(500).json({ success: false, message: err.message });
+            res.json({ success: true, insertId: result.insertId });
+        });
+    });
 
-// 3. Đăng tin mới (Admin): POST /api/jobs
-router.post('/', async (req, res) => {
-    const { title, description, salary } = req.body;
-    try {
-        await db.query('INSERT INTO jobs (title, description, salary) VALUES (?, ?, ?)', [title, description, salary]);
-        res.json({ success: true, message: "Đăng tin thành công!" });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
+    // 3. Xóa tin tuyển dụng (Mới thêm)
+    // Đường dẫn: DELETE /api/jobs/:id
+    router.delete('/:id', (req, res) => {
+        const sql = "DELETE FROM jobs WHERE id = ?";
+        db.query(sql, [req.params.id], (err, result) => {
+            if (err) return res.status(500).json({ success: false, error: err.message });
+            res.json({ success: true, message: "Đã xóa tin tuyển dụng thành công!" });
+        });
+    });
 
-module.exports = router;
+    // 4. Cập nhật tin tuyển dụng (Mới thêm)
+    // Đường dẫn: PUT /api/jobs/:id
+    router.put('/:id', (req, res) => {
+        const { title, description, salary } = req.body;
+        const sql = "UPDATE jobs SET title = ?, description = ?, salary = ? WHERE id = ?";
+        db.query(sql, [title, description, salary, req.params.id], (err, result) => {
+            if (err) return res.status(500).json({ success: false, error: err.message });
+            res.json({ success: true, message: "Đã cập nhật tin thành công!" });
+        });
+    });
+
+    return router;
+};
