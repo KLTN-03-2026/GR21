@@ -1,3 +1,15 @@
+# Loại bỏ tất cả thư mục node_modules ở bất kỳ đâu
 node_modules/
+client/node_modules/
+server/node_modules/
+
+# Loại bỏ các file môi trường
 .env
+server/.env
+
+# Loại bỏ thư mục build/dist của React/Vite
 dist/
+client/dist/
+
+# Các file rác hệ điều hành
+.DS_Store

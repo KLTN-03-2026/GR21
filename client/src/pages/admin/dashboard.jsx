@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom'; // 1. Import hook điều hướng
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
-// Nhận props changeTab từ AdminDashboard truyền xuống
-const Dashboard = ({ changeTab }) => {
+const Dashboard = () => {
+    const navigate = useNavigate(); // 2. Khởi tạo navigate
     const [stats, setStats] = useState({
         totalEmployees: 0,
         totalDepartments: 0,
@@ -27,36 +28,33 @@ const Dashboard = ({ changeTab }) => {
     return (
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-700">
 
-            {/* HÀNG THẺ THỐNG KÊ (STATS CARDS) - ĐÃ THÊM CLICK ĐỂ CHUYỂN TAB */}
+            {/* HÀNG THẺ THỐNG KÊ (STATS CARDS) */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 
-                <div onClick={() => changeTab('employees')} className="cursor-pointer">
+                {/* 3. Thay onClick={() => changeTab(...)} bằng navigate(...) */}
+                <div onClick={() => navigate('/admin/employees')} className="active:scale-95 transition-transform cursor-pointer">
                     <StatCard icon="👥" label="Nhân sự" value={stats.totalEmployees} color="indigo" />
                 </div>
 
-                <div onClick={() => changeTab('departments')} className="cursor-pointer">
+                <div onClick={() => navigate('/admin/phong-ban')} className="active:scale-95 transition-transform cursor-pointer">
                     <StatCard icon="🏢" label="Phòng ban" value={stats.totalDepartments} color="emerald" />
                 </div>
 
-                <div onClick={() => changeTab('jobs')} className="cursor-pointer">
+                <div onClick={() => navigate('/admin/jobs')} className="active:scale-95 transition-transform cursor-pointer">
                     <StatCard icon="✍️" label="Tuyển dụng" value={stats.activeJobs} color="amber" />
                 </div>
 
-                {/* Thẻ này tạm thời chưa có tab chi tiết thì để nguyên hoặc link sang thông báo */}
-                <div className="cursor-default">
+                <div onClick={() => navigate('/admin/leaves')} className="active:scale-95 transition-transform cursor-pointer">
                     <StatCard icon="📅" label="Đơn nghỉ" value={stats.pendingLeaves} color="rose" />
                 </div>
 
             </div>
 
-            {/* BIỂU ĐỒ PHÂN BỔ NHÂN SỰ */}
+            {/* PHẦN BIỂU ĐỒ GIỮ NGUYÊN... */}
             <div className="bg-white p-10 rounded-[3.5rem] shadow-xl border border-slate-100 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50/50 rounded-full blur-3xl -mr-32 -mt-32"></div>
-
                 <h3 className="text-2xl font-black text-slate-800 mb-10 flex items-center gap-3 relative z-10 italic">
                     <span className="bg-slate-100 p-2 rounded-xl">📊</span> Phân bổ nhân sự thực tế
                 </h3>
-
                 <div className="h-[400px] w-full relative z-10">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={stats.chartData}>
@@ -80,18 +78,27 @@ const Dashboard = ({ changeTab }) => {
     );
 };
 
-// Component con StatCard - Đã thêm hiệu ứng hover cho chuyên nghiệp
-const StatCard = ({ icon, label, value, color }) => (
-    <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex items-center gap-6 
-                  hover:shadow-2xl hover:-translate-y-2 hover:border-indigo-200 transition-all duration-300 group">
-        <div className={`w-16 h-16 bg-${color}-50 rounded-2xl flex items-center justify-center text-3xl group-hover:scale-110 transition-transform`}>
-            {icon}
+// Component StatCard phía dưới giữ nguyên
+const StatCard = ({ icon, label, value, color }) => {
+    const colorClasses = {
+        indigo: 'bg-indigo-50 group-hover:bg-indigo-600',
+        emerald: 'bg-emerald-50 group-hover:bg-emerald-600',
+        amber: 'bg-amber-50 group-hover:bg-amber-600',
+        rose: 'bg-rose-50 group-hover:bg-rose-600'
+    };
+
+    return (
+        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex items-center gap-6 
+                    hover:shadow-2xl hover:-translate-y-2 hover:border-indigo-200 transition-all duration-300 group">
+            <div className={`w-16 h-16 ${colorClasses[color]} rounded-2xl flex items-center justify-center text-3xl group-hover:scale-110 group-hover:text-white transition-all duration-500`}>
+                {icon}
+            </div>
+            <div>
+                <span className="block text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">{label}</span>
+                <span className="text-4xl font-black text-slate-800 tracking-tighter">{value || 0}</span>
+            </div>
         </div>
-        <div>
-            <span className="block text-slate-400 text-[10px] font-black uppercase tracking-[0.2em]">{label}</span>
-            <span className="text-4xl font-black text-slate-800 tracking-tighter">{value || 0}</span>
-        </div>
-    </div>
-);
+    );
+};
 
 export default Dashboard;

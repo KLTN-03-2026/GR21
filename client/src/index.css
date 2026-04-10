@@ -1,1 +1,27 @@
 @import "tailwindcss";
+@import "tailwindcss";
+
+/* --- CUSTOM SCROLLBAR CHO SẾP BEO --- */
+/* Dùng cho Chrome, Edge, Safari */
+::-webkit-scrollbar {
+  width: 5px; /* Độ rộng siêu mỏng cho tinh tế */
+}
+
+::-webkit-scrollbar-track {
+  background: #0f172a; /* Màu nền giống Sidebar (slate-900) */
+}
+
+::-webkit-scrollbar-thumb {
+  background: #4f46e5; /* Màu xanh Indigo-600 chuẩn bài */
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6366f1; /* Sáng lên một tí khi sếp rê chuột vào */
+}
+
+/* Dùng cho Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #4f46e5 #0f172a;
+}

@@ -25,6 +25,8 @@ const dashboardRoutes = require('./routes/dashboard')(db);
 const tuyenDungRoutes = require('./routes/tuyendung')(db);
 const dangNhapRoutes = require('./routes/dangnhap')(db);
 const departmentsRoute = require('./routes/departments');
+const attendanceRoutes = require('./routes/attendance')(db);
+const leaveRoutes = require('./routes/leaves')(db);
 
 
 // 3. ĐỊNH NGHĨA ĐƯỜNG DẪN API (NỐI DÂY)
@@ -33,6 +35,8 @@ app.use('/api/jobs', tuyenDungRoutes);
 app.use('/api/auth', dangNhapRoutes);
 app.use('/api/employees', employeeRoutes);
 app.use('/api/phongban', departmentsRoute);
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/leaves', leaveRoutes);
 // Test nhanh server
 app.get('/api/test', (req, res) => res.json({ success: true, message: "Server chạy ngon bro ơi!" }));
 
