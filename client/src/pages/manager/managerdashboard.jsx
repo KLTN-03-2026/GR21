@@ -5,34 +5,51 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 const ManagerDashboard = () => {
     const navigate = useNavigate();
     
+    // Lấy thông tin user từ localStorage (đảm bảo lúc login đã lưu dep_id)
     const userData = JSON.parse(localStorage.getItem('user') || '{}');
-    const userRole = localStorage.getItem('userRole');
 
     const [stats, setStats] = useState({
         totalEmployees: 0,
         pendingLeaves: 0,
-        chartData: []
+        departmentName: '',
+        chartData: [] // Nếu Backend Manager trả về data biểu đồ
     });
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        // Lấy depId của manager
         const depId = userData.dep_id || '';
-        // Gọi API lọc theo role và depId
-        fetch(`http://localhost:5000/api/dashboard/stats?role=${userRole}&depId=${depId}`)
+        
+        if (!depId) {
+            console.error("Không tìm thấy depId của Manager");
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setLoading(false);
+            return;
+        }
+
+        // GỌI ĐÚNG ĐƯỜNG DẪN ĐÃ PHÂN LUỒNG
+        fetch(`http://localhost:5000/api/manager/dashboard/stats?depId=${depId}`)
             .then(res => res.json())
             .then(result => {
-                if (result.success) setStats(result.data);
+                if (result.success) {
+                    setStats({
+                        totalEmployees: result.data.totalEmployees || 0,
+                        pendingLeaves: result.data.pendingLeaves || 0,
+                        departmentName: result.data.departmentName || userData.department_name,
+                        chartData: result.data.chartData || []
+                    });
+                }
                 setLoading(false);
             })
             .catch(err => {
-                console.error("Lỗi Manager Dashboard:", err);
+                console.error("Lỗi kết nối API Manager Dashboard:", err);
                 setLoading(false);
             });
-    }, [userRole, userData.dep_id]);
+    }, [userData.dep_id, userData.department_name]);
 
     if (loading) return (
         <div className="p-10 text-center font-black text-slate-300 animate-pulse uppercase tracking-[0.3em]">
-            Đang đồng bộ dữ liệu phòng {userData.department_name}...
+            Đang đồng bộ dữ liệu {userData.department_name || 'phòng ban'}...
         </div>
     );
 
@@ -43,18 +60,18 @@ const ManagerDashboard = () => {
             <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100 flex justify-between items-center border-l-8 border-l-violet-600">
                 <div>
                     <h2 className="text-2xl font-black text-slate-800 italic uppercase tracking-tighter">
-                        Bảng điều khiển {userData.department_name}
+                        Bảng điều khiển {stats.departmentName || userData.department_name}
                     </h2>
                     <p className="text-slate-400 font-bold text-[10px] uppercase tracking-widest mt-1">
                         Dữ liệu quản trị dành riêng cho Manager
                     </p>
                 </div>
                 <div className="bg-violet-600 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase shadow-lg shadow-violet-200">
-                    Sếp: {userData.full_name}
+                    Quản lý: {userData.full_name}
                 </div>
             </div>
 
-            {/* --- CÁC THẺ THỐNG KÊ (2 CỘT CHO CÂN ĐỐI) --- */}
+            {/* --- CÁC THẺ THỐNG KÊ --- */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 
                 {/* NHÂN SỰ PHÒNG */}
@@ -102,7 +119,7 @@ const ManagerDashboard = () => {
                 
                 <div className="h-[350px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={stats.chartData}>
+                        <BarChart data={stats.chartData.length > 0 ? stats.chartData : [{name: stats.departmentName, value: stats.totalEmployees}]}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                             <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontWeight: 'bold', fontSize: 12 }} />
                             <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontWeight: 'bold' }} />
@@ -114,6 +131,8 @@ const ManagerDashboard = () => {
                                 {stats.chartData.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill="#8b5cf6" />
                                 ))}
+                                {/* Màu mặc định nếu chartData trống */}
+                                <Cell fill="#8b5cf6" />
                             </Bar>
                         </BarChart>
                     </ResponsiveContainer>

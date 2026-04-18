@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // 1. Import hook điều hướng
+import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 const Dashboard = () => {
-    const navigate = useNavigate(); // 2. Khởi tạo navigate
+    const navigate = useNavigate();
     const [stats, setStats] = useState({
         totalEmployees: 0,
         totalDepartments: 0,
@@ -14,16 +14,29 @@ const Dashboard = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetch('http://localhost:5000/api/dashboard/stats')
-            .then(res => res.json())
+        // FIX: Đổi URL từ /api/dashboard thành /api/admin/dashboard
+        fetch('http://localhost:5000/api/admin/dashboard/stats')
+            .then(res => {
+                if (!res.ok) throw new Error("Không tìm thấy API Admin");
+                return res.json();
+            })
             .then(result => {
-                if (result.success) setStats(result.data);
+                if (result.success) {
+                    setStats(result.data);
+                }
                 setLoading(false);
             })
-            .catch(err => console.error("Lỗi Dashboard:", err));
+            .catch(err => {
+                console.error("Lỗi Dashboard Admin:", err);
+                setLoading(false);
+            });
     }, []);
 
-    if (loading) return <div className="p-10 font-black text-slate-300 animate-pulse uppercase tracking-widest text-center">Đang tải dữ liệu hệ thống...</div>;
+    if (loading) return (
+        <div className="p-10 font-black text-slate-300 animate-pulse uppercase tracking-[0.3em] text-center">
+            Đang đồng bộ dữ liệu hệ thống Admin...
+        </div>
+    );
 
     return (
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-6 duration-700">
@@ -31,7 +44,6 @@ const Dashboard = () => {
             {/* HÀNG THẺ THỐNG KÊ (STATS CARDS) */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 
-                {/* 3. Thay onClick={() => changeTab(...)} bằng navigate(...) */}
                 <div onClick={() => navigate('/admin/employees')} className="active:scale-95 transition-transform cursor-pointer">
                     <StatCard icon="👥" label="Nhân sự" value={stats.totalEmployees} color="indigo" />
                 </div>
@@ -50,11 +62,15 @@ const Dashboard = () => {
 
             </div>
 
-            {/* PHẦN BIỂU ĐỒ GIỮ NGUYÊN... */}
+            {/* BIỂU ĐỒ PHÂN BỔ NHÂN SỰ */}
             <div className="bg-white p-10 rounded-[3.5rem] shadow-xl border border-slate-100 relative overflow-hidden">
-                <h3 className="text-2xl font-black text-slate-800 mb-10 flex items-center gap-3 relative z-10 italic">
-                    <span className="bg-slate-100 p-2 rounded-xl">📊</span> Phân bổ nhân sự thực tế
+                <div className="absolute bottom-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-500 to-violet-500"></div>
+                
+                <h3 className="text-2xl font-black text-slate-800 mb-10 flex items-center gap-3 relative z-10 italic uppercase tracking-tighter">
+                    <span className="bg-slate-100 p-2 rounded-xl">📊</span> 
+                    Phân bổ nhân sự toàn công ty
                 </h3>
+                
                 <div className="h-[400px] w-full relative z-10">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={stats.chartData}>
@@ -78,7 +94,6 @@ const Dashboard = () => {
     );
 };
 
-// Component StatCard phía dưới giữ nguyên
 const StatCard = ({ icon, label, value, color }) => {
     const colorClasses = {
         indigo: 'bg-indigo-50 group-hover:bg-indigo-600',

@@ -6,24 +6,31 @@ import AdminLayout from '../layouts/adminlayout';
 import ManagerLayout from '../layouts/managerlayout';
 import EmployeeLayout from '../layouts/employeelayout';
 
-// Components & Pages
+// Components & Pages Common
 import Navbar from '../components/Navbar';
 import Home from '../pages/home';
 import DangNhap from '../pages/dangnhap';
 import { NotFound, Developing } from '../components/common/statuspages';
 
-// Admin Pages
+// --- [ ADMIN PAGES ] ---
 import Dashboard from '../pages/admin/dashboard';
 import Employees from '../pages/admin/employees';
 import PhongBan from '../pages/admin/departments';
 import Attendance from '../pages/admin/attendance';
 import Leaves from '../pages/admin/leaves';
 import Job from '../pages/admin/job';
+import Salaries from '../pages/admin/salaries';
+import Contracts from '../pages/admin/contracts';
+import Accounts from '../pages/admin/accounts'; 
+import Notifications from '../pages/admin/notifications';
 
-// Manager Pages
+// --- [ MANAGER PAGES ] ---
 import ManagerDashboard from '../pages/manager/managerdashboard';
+import ManagerEmployee from '../pages/manager/ManagerEmployee';
+import ManagerAttendance from '../pages/manager/managerattendances';
+import ManagerSalaries from '../pages/manager/ManagerSalaries'; // Con hàng mới ae mình vừa sục
 
-// Employee Pages
+// --- [ EMPLOYEE PAGES ] ---
 import HomeEmployee from '../pages/employee/homeemployee';
 
 const AppRoutes = ({ jobs, loading }) => {
@@ -31,11 +38,15 @@ const AppRoutes = ({ jobs, loading }) => {
 
     return (
         <Routes>
-            {/* --- PUBLIC ROUTES --- */}
+            {/* ==========================================
+                1. PUBLIC ROUTES (Ai cũng vào được)
+            ========================================== */}
             <Route path="/" element={<><Navbar /><Home jobs={jobs} loading={loading} /></>} />
             <Route path="/dang-nhap" element={<><Navbar /><DangNhap /></>} />
 
-            {/* --- ADMIN ROUTES --- */}
+            {/* ==========================================
+                2. ADMIN ROUTES (Chỉ dành cho Admin)
+            ========================================== */}
             <Route path="/admin" element={currentRole === 'admin' ? <AdminLayout /> : <Navigate to="/dang-nhap" replace />}>
                 <Route index element={<Navigate to="dashboard" replace />} />
                 <Route path="dashboard" element={<Dashboard />} />
@@ -44,32 +55,43 @@ const AppRoutes = ({ jobs, loading }) => {
                 <Route path="cham-cong" element={<Attendance />} />
                 <Route path="leaves" element={<Leaves />} />
                 <Route path="jobs" element={<Job />} />
-                <Route path="salary" element={<Developing pageName="Quản lý lương" />} />
-                <Route path="contracts" element={<Developing pageName="Quản lý hợp đồng" />} />
+                <Route path="salary" element={<Salaries />} />
+                <Route path="contracts" element={<Contracts />} />
+                <Route path="accounts" element={<Accounts />} />
+                <Route path="notifications" element={<Notifications />} />
             </Route>
 
-            {/* --- MANAGER ROUTES --- */}
+            {/* ==========================================
+                3. MANAGER ROUTES (Chỉ dành cho Manager)
+            ========================================== */}
             <Route path="/manager" element={currentRole === 'manager' ? <ManagerLayout /> : <Navigate to="/dang-nhap" replace />}>
                 <Route index element={<Navigate to="dashboard" replace />} />
                 <Route path="dashboard" element={<ManagerDashboard />} />
-                <Route path="employees" element={<Developing pageName="Nhân sự (Manager)" />} />
-                <Route path="attendance" element={<Developing pageName="Chấm công (Manager)" />} />
+                <Route path="employees" element={<ManagerEmployee />} /> 
+                <Route path="attendance" element={<ManagerAttendance />} />
+                <Route path="salary" element={<ManagerSalaries />} /> 
+                
+                {/* Các trang đang phát triển (Sẽ sục sau) */}
                 <Route path="leaves" element={<Developing pageName="Nghỉ phép (Manager)" />} />
-                <Route path="salary" element={<Developing pageName="Lương (Manager)" />} />
                 <Route path="contracts" element={<Developing pageName="Hợp đồng (Manager)" />} />
                 <Route path="notifications" element={<Developing pageName="Thông báo" />} />
             </Route>
 
-            {/* --- EMPLOYEE ROUTES --- */}
+            {/* ==========================================
+                4. EMPLOYEE ROUTES (Chỉ dành cho Nhân viên)
+            ========================================== */}
             <Route path="/employee" element={currentRole === 'employee' ? <EmployeeLayout /> : <Navigate to="/dang-nhap" replace />}>
                 <Route index element={<Navigate to="home" replace />} />
                 <Route path="home" element={<HomeEmployee />} />
-                <Route path="profile" element={<Developing pageName="Hồ sơ" />} />
-                <Route path="attendance" element={<Developing pageName="Chấm công" />} />
-                <Route path="leave" element={<Developing pageName="Xin nghỉ" />} />
-                <Route path="salary" element={<Developing pageName="Phiếu lương" />} />
+                
+                {/* Các trang đang phát triển cho role Employee */}
+                <Route path="profile" element={<Developing pageName="Hồ sơ cá nhân" />} />
+                <Route path="attendance" element={<Developing pageName="Lịch sử chấm công" />} />
+                <Route path="leave" element={<Developing pageName="Gửi đơn xin nghỉ" />} />
+                <Route path="salary" element={<Developing pageName="Phiếu lương cá nhân" />} />
             </Route>
 
+            {/* 404 NOT FOUND */}
             <Route path="*" element={<><Navbar /><NotFound /></>} />
         </Routes>
     );
