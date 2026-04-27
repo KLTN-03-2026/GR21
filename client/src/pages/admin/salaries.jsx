@@ -1,21 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { DollarSign, Calculator, CheckCircle2, AlertCircle, Calendar, FileSpreadsheet, Clock, UserCheck, ShieldCheck } from 'lucide-react';
+import { DollarSign, Calculator, CheckCircle2, AlertCircle, Calendar, FileSpreadsheet, Clock, UserCheck, ShieldCheck, Layers } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 const Salaries = () => {
     const [salaries, setSalaries] = useState([]);
+    const [departments, setDepartments] = useState([]); // State lưu danh sách phòng ban
     const [loading, setLoading] = useState(false);
     const [filter, setFilter] = useState({
         month: new Date().getMonth() + 1,
-        year: new Date().getFullYear()
+        year: new Date().getFullYear(),
+        depId: 'all' // Mặc định là xem tất cả
     });
+
+    // 1. Lấy danh sách phòng ban để đổ vào Dropdown
+    useEffect(() => {
+        const fetchDeps = async () => {
+            try {
+                const res = await axios.get('http://localhost:5000/api/phongban');
+                setDepartments(res.data);
+            } catch (err) {
+                console.error("Lỗi lấy danh sách phòng ban:", err);
+            }
+        };
+        fetchDeps();
+    }, []);
 
     const fetchSalariesData = async () => {
         setLoading(true);
         try {
-            // API đã có logic lọc Trưởng phòng/Confirmed từ Backend
-            const res = await axios.get(`http://localhost:5000/api/salaries?month=${filter.month}&year=${filter.year}`);
+            // FIX: Truyền thêm tham số depId vào URL
+            const res = await axios.get(`http://localhost:5000/api/salaries?month=${filter.month}&year=${filter.year}&depId=${filter.depId}`);
             setSalaries(res.data);
         } catch (err) {
             console.error("Lỗi lấy bảng lương:", err);
@@ -27,7 +42,7 @@ const Salaries = () => {
     useEffect(() => {
         fetchSalariesData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [filter.month, filter.year]);
+    }, [filter.month, filter.year, filter.depId]); // Fetch lại khi đổi phòng ban
 
     const handleExportExcel = () => {
         if (!salaries || salaries.length === 0) {
@@ -105,6 +120,21 @@ const Salaries = () => {
                         <select className="bg-transparent font-black text-slate-700 outline-none cursor-pointer text-xs" value={filter.year} onChange={(e) => setFilter({...filter, year: e.target.value})}>
                             <option value="2026">2026</option>
                             <option value="2025">2025</option>
+                        </select>
+                    </div>
+
+                    {/* BỘ LỌC PHÒNG BAN MỚI */}
+                    <div className="flex items-center gap-2 px-4 border-r border-slate-100">
+                        <Layers size={18} className="text-slate-400" />
+                        <select 
+                            className="bg-transparent font-black text-slate-700 outline-none cursor-pointer text-xs uppercase" 
+                            value={filter.depId} 
+                            onChange={(e) => setFilter({...filter, depId: e.target.value})}
+                        >
+                            <option value="all">TẤT CẢ PHÒNG BAN</option>
+                            {departments.map(dep => (
+                                <option key={dep.id} value={dep.id}>{dep.name}</option>
+                            ))}
                         </select>
                     </div>
                     

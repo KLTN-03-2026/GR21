@@ -2,22 +2,23 @@ const express = require('express');
 const router = express.Router();
 
 module.exports = (db) => {
+    const dbPromise = db.promise ? db.promise() : db;
 
-    // 1. LẤY DANH SÁCH CHẤM CÔNG (Nâng cấp: Lọc Khoảng Ngày & Phòng Ban)
-    router.get('/', (req, res) => {
-        // Lấy startDate và endDate từ query để lọc theo khoảng thời gian
-        const { startDate, endDate, dep_id } = req.query;
+    // 1. [GET] Lấy danh sách chấm công Trưởng phòng
+    router.get('/', async (req, res) => {
+        const { startDate, endDate, dep_id, status } = req.query;
         
         let sql = `
             SELECT a.*, e.full_name, e.position, d.name as department_name
             FROM attendances a
             JOIN employees e ON a.emp_id = e.id
             JOIN departments d ON e.dep_id = d.id
-            WHERE 1=1
+            WHERE EXISTS (
+                SELECT 1 FROM departments d2 WHERE d2.manager_id = e.id
+            )
         `;
         const params = [];
 
-        // Logic lọc theo ngày: Nếu chọn khoảng ngày thì dùng BETWEEN, nếu chỉ có 1 ngày thì dùng dấu =
         if (startDate && endDate) {
             sql += " AND a.date BETWEEN ? AND ?";
             params.push(startDate, endDate);
@@ -26,77 +27,125 @@ module.exports = (db) => {
             params.push(startDate);
         }
 
-        // Lọc theo phòng ban
         if (dep_id && dep_id !== 'all') {
             sql += " AND e.dep_id = ?";
             params.push(dep_id);
         }
 
+        if (status && status !== 'all') {
+            sql += " AND a.status = ?";
+            params.push(status);
+        }
+
         sql += " ORDER BY a.date DESC, a.id DESC";
 
-        db.query(sql, params, (err, rows) => {
-            if (err) {
-                console.error("❌ Lỗi lấy dữ liệu chấm công:", err.message);
-                return res.status(500).send(err.message);
-            }
+        try {
+            const [rows] = await dbPromise.execute(sql, params);
             res.status(200).json(rows);
-        });
+        } catch (err) {
+            res.status(500).send(err.message);
+        }
     });
 
-    // 2. API THỐNG KÊ NHANH (STATS) - Dùng để hiện Card trên Dashboard Admin
-    router.get('/stats', (req, res) => {
+    // 2. [GET] Thống kê Stats cho Admin (Đã thêm trạng thái absent)
+    router.get('/stats', async (req, res) => {
         const { startDate, endDate } = req.query;
-        
-        // Nếu không truyền ngày, lấy mặc định hôm nay
         const start = startDate || new Date().toISOString().split('T')[0];
         const end = endDate || start;
 
         const sql = `
             SELECT 
-                (SELECT COUNT(*) FROM employees) as total_emp,
-                (SELECT COUNT(*) FROM attendances WHERE (date BETWEEN ? AND ?) AND status = 'present') as on_time,
-                (SELECT COUNT(*) FROM attendances WHERE (date BETWEEN ? AND ?) AND status = 'late') as late,
-                (SELECT COUNT(DISTINCT emp_id) FROM attendances WHERE (date BETWEEN ? AND ?)) as total_present_distinct
+                (SELECT COUNT(DISTINCT manager_id) FROM departments) as total_managers,
+                (SELECT COUNT(*) FROM attendances a 
+                 JOIN departments d ON a.emp_id = d.manager_id 
+                 WHERE (a.date BETWEEN ? AND ?) AND a.status = 'present') as on_time,
+                (SELECT COUNT(*) FROM attendances a 
+                 JOIN departments d ON a.emp_id = d.manager_id 
+                 WHERE (a.date BETWEEN ? AND ?) AND a.status = 'late') as late,
+                (SELECT COUNT(*) FROM attendances a 
+                 JOIN departments d ON a.emp_id = d.manager_id 
+                 WHERE (a.date BETWEEN ? AND ?) AND a.status = 'absent') as absent_count
             FROM DUAL
         `;
 
-        db.query(sql, [start, end, start, end, start, end], (err, results) => {
-            if (err) return res.status(500).send(err.message);
-            
+        try {
+            const [results] = await dbPromise.execute(sql, [start, end, start, end, start, end]);
             const data = results[0];
             const present = data.on_time + data.late;
-            // Vắng mặt tính trên tổng nhân sự - số người thực tế có đi làm trong khoảng đó
-            const absent = data.total_emp - data.total_present_distinct;
+            // Absent thực tế = Tổng manager - Số người có mặt (có thể dùng absent_count nếu chấm đủ)
+            const absent = data.absent_count || Math.max(0, data.total_managers - present);
 
             res.json({
-                total: data.total_emp,
+                total: data.total_managers,
                 present: present,
                 on_time: data.on_time,
                 late: data.late,
-                absent: absent > 0 ? absent : 0
+                absent: absent
             });
-        });
+        } catch (err) {
+            res.status(500).send(err.message);
+        }
     });
 
-    // 3. TẠO MỚI (Admin nhập bù hoặc sửa lỗi hệ thống)
-    router.post('/', (req, res) => {
+    // 3. [POST] Admin chấm công cho Manager + Nhảy lương (Chỉ tính tiền ngày present/late)
+    router.post('/', async (req, res) => {
         const { emp_id, date, check_in, check_out, status } = req.body;
-        const sql = "INSERT INTO attendances (emp_id, date, check_in, check_out, status) VALUES (?, ?, ?, ?, ?)";
-        db.query(sql, [emp_id, date, check_in, check_out, status], (err) => {
-            if (err) return res.status(500).send(err.message);
-            res.status(201).json({ success: true, message: "Đã thêm dữ liệu chấm công thành công bro!" });
-        });
+        const attDate = new Date(date);
+        const month = attDate.getMonth() + 1;
+        const year = attDate.getFullYear();
+
+        try {
+            const sqlInsert = "INSERT INTO attendances (emp_id, date, check_in, check_out, status) VALUES (?, ?, ?, ?, ?)";
+            await dbPromise.execute(sqlInsert, [emp_id, date, check_in || null, check_out || null, status]);
+
+            const updateSalarySql = `
+                UPDATE salaries s
+                JOIN contracts c ON s.emp_id = c.user_id
+                SET 
+                    s.base_salary = c.basic_salary,
+                    s.allowance_meal = (SELECT (c.allowance_meal / 26) * COUNT(CASE WHEN status IN ('present', 'late') THEN 1 END) FROM attendances WHERE emp_id = ? AND MONTH(date) = ? AND YEAR(date) = ?),
+                    s.allowance_parking = (SELECT (c.allowance_parking / 26) * COUNT(CASE WHEN status IN ('present', 'late') THEN 1 END) FROM attendances WHERE emp_id = ? AND MONTH(date) = ? AND YEAR(date) = ?),
+                    s.final_salary = (
+                        SELECT (((c.basic_salary + c.allowance_meal + c.allowance_parking) / 26) * COUNT(CASE WHEN status IN ('present', 'late') THEN 1 END)) + IFNULL(s.bonus, 0) - IFNULL(s.deductions, 0)
+                        FROM attendances WHERE emp_id = ? AND MONTH(date) = ? AND YEAR(date) = ?
+                    )
+                WHERE s.emp_id = ? AND s.month = ? AND s.year = ? AND c.status = 'Hiệu lực'
+            `;
+
+            await dbPromise.execute(updateSalarySql, [emp_id, month, year, emp_id, month, year, emp_id, month, year, emp_id, month, year]);
+            res.status(201).json({ success: true, message: "Đã ghi nhận công. Lương sếp đã tự động cập nhật theo số ngày làm! 💸" });
+        } catch (err) {
+            if (err.code === 'ER_DUP_ENTRY') return res.status(400).json({ message: "Ngày này sếp đã có dữ liệu rồi bro!" });
+            res.status(500).send(err.message);
+        }
     });
 
-    // 4. SỬA DỮ LIỆU
-    router.put('/:id', (req, res) => {
+    // 4. [PUT] Admin sửa chấm công cho Manager + Nhảy lại lương chuẩn
+    router.put('/:id', async (req, res) => {
         const { id } = req.params;
-        const { check_in, check_out, status } = req.body;
-        const sql = "UPDATE attendances SET check_in=?, check_out=?, status=? WHERE id=?";
-        db.query(sql, [check_in, check_out, status, id], (err) => {
-            if (err) return res.status(500).send(err.message);
-            res.json({ success: true, message: "Cập nhật chấm công xong rồi bro!" });
-        });
+        const { emp_id, date, check_in, check_out, status } = req.body;
+        const attDate = new Date(date);
+        const month = attDate.getMonth() + 1;
+        const year = attDate.getFullYear();
+
+        try {
+            await dbPromise.execute("UPDATE attendances SET check_in=?, check_out=?, status=? WHERE id=?", [check_in || null, check_out || null, status, id]);
+            
+            const updateSalarySql = `
+                UPDATE salaries s
+                JOIN contracts c ON s.emp_id = c.user_id
+                SET 
+                    s.allowance_meal = (SELECT (c.allowance_meal / 26) * COUNT(CASE WHEN status IN ('present', 'late') THEN 1 END) FROM attendances WHERE emp_id = ? AND MONTH(date) = ? AND YEAR(date) = ?),
+                    s.allowance_parking = (SELECT (c.allowance_parking / 26) * COUNT(CASE WHEN status IN ('present', 'late') THEN 1 END) FROM attendances WHERE emp_id = ? AND MONTH(date) = ? AND YEAR(date) = ?),
+                    s.final_salary = (
+                        SELECT (((c.basic_salary + c.allowance_meal + c.allowance_parking) / 26) * COUNT(CASE WHEN status IN ('present', 'late') THEN 1 END)) + IFNULL(s.bonus, 0) - IFNULL(s.deductions, 0)
+                        FROM attendances WHERE emp_id = ? AND MONTH(date) = ? AND YEAR(date) = ?
+                    )
+                WHERE s.emp_id = ? AND s.month = ? AND s.year = ? AND c.status = 'Hiệu lực'
+            `;
+            await dbPromise.execute(updateSalarySql, [emp_id, month, year, emp_id, month, year, emp_id, month, year, emp_id, month, year]);
+            res.json({ success: true, message: "Cập nhật thành công! Tiền lương sếp đã được tính lại chuẩn đét. ✅" });
+        } catch (err) { res.status(500).send(err.message); }
     });
 
     return router;

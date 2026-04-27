@@ -36,41 +36,50 @@ app.use('/api/auth', dangNhapRoutes);
 const adminDashboard = require('./routes/admin/dashboard')(db);
 const employeeRoutes = require('./routes/admin/employees')(db);
 const tuyenDungRoutes = require('./routes/admin/tuyendung')(db);
-const departmentsRoute = require('./routes/admin/departments'); // File này của bro ko truyền (db) vào à? Check lại nhé.
+const departmentsRoute = require('./routes/admin/departments'); // Bro check xem file này có exports = (db) => ... ko nhé
 const attendanceRoutes = require('./routes/admin/attendance')(db);
 const leaveRoutes = require('./routes/admin/leaves')(db);
 const salaryRoutes = require('./routes/admin/salaries')(db); 
 const contractRoutes = require('./routes/admin/contracts')(db);
 const accountRoutes = require('./routes/admin/accounts')(db); 
-const notificationRoutes = require('./routes/admin/notifications')(db);
+const adminNotificationRoutes = require('./routes/admin/notifications')(db); // File admin duyệt tin
 
 app.use('/api/admin/dashboard', adminDashboard);
+app.use('/api/admin/notifications', adminNotificationRoutes); // FIX: Thêm /admin để khớp với FE tui gửi
 app.use('/api/employees', employeeRoutes);
 app.use('/api/jobs', tuyenDungRoutes);
 app.use('/api/phongban', departmentsRoute);
-app.use('/api/attendance', attendanceRoutes);
-app.use('/api/leaves', leaveRoutes);
+app.use('/api/admin/attendance', attendanceRoutes);
+app.use('/api/admin/leaves', leaveRoutes);
 app.use('/api/salaries', salaryRoutes); 
 app.use('/api/contracts', contractRoutes);
 app.use('/api/accounts', accountRoutes); 
-app.use('/api/notifications', notificationRoutes);
 
 // --- [ ROLE: MANAGER ] ---
 const managerDashboard = require('./routes/manager/managerdashboard')(db); 
 const managerEmployeeRoutes = require('./routes/manager/manageremployee')(db);
 const managerAttendance = require('./routes/manager/managerattendances')(db);
 const managerSalaries = require('./routes/manager/managersalaries')(db);
+const managerContracts = require('./routes/manager/managercontracts')(db);
+const managerNotificationRoutes = require('./routes/manager/managernotifications')(db);
+const managerLeaveRoutes = require('./routes/manager/managerleaves')(db);
 
 app.use('/api/manager/dashboard', managerDashboard);
-app.use('/api/manager/employee', managerEmployeeRoutes); // Đổi cho đồng bộ nè bro
+app.use('/api/manager/employee', managerEmployeeRoutes); 
 app.use('/api/manager/attendances', managerAttendance);
 app.use('/api/manager/salaries', managerSalaries);
+app.use('/api/manager/contracts', managerContracts);
+app.use('/api/manager/notifications', managerNotificationRoutes); // Khớp với FE Manager
+app.use('/api/manager/leaves', managerLeaveRoutes);
 
-// --- [ ROLE: EMPLOYEE (Dành cho bro sau này "sục") ] ---
-// Mai mốt bro làm thì cứ khai báo vào đây cho dễ quản lý
-// const employeeProfile = require('./routes/employee/profile')(db);
-// app.use('/api/employee/profile', employeeProfile);
+// --- [ ROLE: EMPLOYEE ] ---
+const employeeHomeRoutes = require('./routes/employee/homeemployee')(db);
+const employeeProfileRoute = require('./routes/employee/employeeprofile')(db);
+const employeeAttendanceRoute = require('./routes/employee/employeeattendance')(db);
 
+app.use('/api/employee/home', employeeHomeRoutes);
+app.use('/api/employee/profile', employeeProfileRoute);
+app.use('/api/employee/attendance', employeeAttendanceRoute);
 
 // ==========================================
 // 3. TEST & KHỞI CHẠY SERVER
@@ -82,6 +91,6 @@ app.get('/api/test', (req, res) => {
 const PORT = 5000;
 app.listen(PORT, () => {
     console.log(`🚀 Server Nhóm 21 đang chạy tại port ${PORT}...`);
-    console.log(`📌 Admin: http://localhost:${PORT}/api/admin/dashboard`);
-    console.log(`📌 Manager: http://localhost:${PORT}/api/manager/dashboard`);
+    console.log(`📌 Admin Notifications: http://localhost:${PORT}/api/admin/notifications`);
+    console.log(`📌 Manager Notifications: http://localhost:${PORT}/api/manager/notifications`);
 });

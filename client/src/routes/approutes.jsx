@@ -21,17 +21,22 @@ import Leaves from '../pages/admin/leaves';
 import Job from '../pages/admin/job';
 import Salaries from '../pages/admin/salaries';
 import Contracts from '../pages/admin/contracts';
-import Accounts from '../pages/admin/accounts'; 
+import Accounts from '../pages/admin/accounts';
 import Notifications from '../pages/admin/notifications';
 
 // --- [ MANAGER PAGES ] ---
 import ManagerDashboard from '../pages/manager/managerdashboard';
-import ManagerEmployee from '../pages/manager/ManagerEmployee';
+import ManagerEmployee from '../pages/manager/manageremployee';
 import ManagerAttendance from '../pages/manager/managerattendances';
-import ManagerSalaries from '../pages/manager/ManagerSalaries'; // Con hàng mới ae mình vừa sục
+import ManagerSalaries from '../pages/manager/managersalaries'; // Con hàng mới ae mình vừa sục
+import ManagerNotifications from "../pages/manager/managernotifications";
+import ManagerLeaves from '../pages/manager/managerleaves';
+import ManagerContracts from '../pages/manager/managercontracts';
 
 // --- [ EMPLOYEE PAGES ] ---
 import HomeEmployee from '../pages/employee/homeemployee';
+import ProfileEmployee from '../pages/employee/employeeprofile';
+import EmployeeAttendance from '../pages/employee/employeeattendance';
 
 const AppRoutes = ({ jobs, loading }) => {
     const currentRole = localStorage.getItem('userRole');
@@ -67,14 +72,12 @@ const AppRoutes = ({ jobs, loading }) => {
             <Route path="/manager" element={currentRole === 'manager' ? <ManagerLayout /> : <Navigate to="/dang-nhap" replace />}>
                 <Route index element={<Navigate to="dashboard" replace />} />
                 <Route path="dashboard" element={<ManagerDashboard />} />
-                <Route path="employees" element={<ManagerEmployee />} /> 
+                <Route path="employees" element={<ManagerEmployee />} />
                 <Route path="attendance" element={<ManagerAttendance />} />
-                <Route path="salary" element={<ManagerSalaries />} /> 
-                
-                {/* Các trang đang phát triển (Sẽ sục sau) */}
-                <Route path="leaves" element={<Developing pageName="Nghỉ phép (Manager)" />} />
-                <Route path="contracts" element={<Developing pageName="Hợp đồng (Manager)" />} />
-                <Route path="notifications" element={<Developing pageName="Thông báo" />} />
+                <Route path="salary" element={<ManagerSalaries />} />
+                <Route path="contracts" element={<ManagerContracts />} />
+                <Route path="notifications" element={<ManagerNotifications />} />
+                <Route path="leaves" element={<ManagerLeaves />} />
             </Route>
 
             {/* ==========================================
@@ -83,10 +86,12 @@ const AppRoutes = ({ jobs, loading }) => {
             <Route path="/employee" element={currentRole === 'employee' ? <EmployeeLayout /> : <Navigate to="/dang-nhap" replace />}>
                 <Route index element={<Navigate to="home" replace />} />
                 <Route path="home" element={<HomeEmployee />} />
-                
+                <Route path="profile" element={<ProfileEmployee />} />
+                <Route path="attendance" element={<EmployeeAttendance />} />
+
                 {/* Các trang đang phát triển cho role Employee */}
-                <Route path="profile" element={<Developing pageName="Hồ sơ cá nhân" />} />
-                <Route path="attendance" element={<Developing pageName="Lịch sử chấm công" />} />
+                
+               
                 <Route path="leave" element={<Developing pageName="Gửi đơn xin nghỉ" />} />
                 <Route path="salary" element={<Developing pageName="Phiếu lương cá nhân" />} />
             </Route>

@@ -4,46 +4,52 @@ const router = express.Router();
 module.exports = (db) => {
     const dbPromise = db.promise();
 
-    // 1. API: Lấy danh sách lương (Đã fix logic ưu tiên Trưởng phòng)
+    // 1. API: Lấy danh sách lương (Lấy từ bảng salaries)
     router.get('/', async (req, res) => {
-        const { month, year } = req.query;
+        const { month, year, depId } = req.query; 
         try {
-            const sql = `
+            let queryParams = [month, year];
+            let sql = `
                 SELECT 
-                    s.*, 
-                    e.full_name, 
-                    e.position, 
-                    d.name as dept_name,
-                    -- Xác định Trưởng phòng chính xác bằng cách join bảng departments
+                    s.*, e.full_name, e.position, d.name as dept_name,
                     CASE WHEN d.manager_id = e.id THEN 1 ELSE 0 END as is_manager
                 FROM salaries s 
                 JOIN employees e ON s.emp_id = e.id 
                 JOIN departments d ON e.dep_id = d.id
                 WHERE s.month = ? AND s.year = ?
-                AND (
-                    s.status IN ('confirmed', 'paid') -- Hiện nhân viên đã duyệt/thanh toán
-                    OR d.manager_id = e.id -- LUÔN HIỆN TRƯỞNG PHÒNG (Dù status là pending)
-                )
+            `;
+            if (depId && depId !== 'all') {
+                sql += ` AND e.dep_id = ? `;
+                queryParams.push(depId);
+            }
+            sql += `
+                AND (s.status IN ('confirmed', 'paid') OR d.manager_id = e.id)
                 ORDER BY is_manager DESC, d.name ASC, s.emp_id ASC
             `;
-            const [rows] = await dbPromise.execute(sql, [month, year]);
+            const [rows] = await dbPromise.execute(sql, queryParams);
             res.json(rows);
         } catch (err) {
-            console.error("❌ LỖI FETCH ADMIN SALARY:", err.message);
             res.status(500).json({ error: err.message });
         }
     });
 
-    // 2. API: Tính lương thực tế (Giữ nguyên logic của bro nhưng fix Status reset)
+    // 2. API: Tính lương - FIX: Lấy lương gốc Hợp đồng & Chống trùng lặp
     router.post('/generate', async (req, res) => {
         const { month, year } = req.body;
         const standardDays = 22; 
         const lateFine = 50000;  
 
         try {
-            const [contracts] = await dbPromise.execute("SELECT user_id, basic_salary, allowance_meal, allowance_parking FROM contracts");
+            // CHIÊU CUỐI: Chỉ lấy DUY NHẤT 1 hợp đồng mới nhất đang hiệu lực của mỗi người
+            const [contracts] = await dbPromise.execute(`
+                SELECT user_id, basic_salary, allowance_meal, allowance_parking 
+                FROM contracts 
+                WHERE id IN (SELECT MAX(id) FROM contracts GROUP BY user_id)
+                AND status = 'Hiệu lực'
+            `);
 
             for (let ct of contracts) {
+                // Lấy chuyên cần
                 const [attendance] = await dbPromise.execute(`
                     SELECT 
                         COUNT(CASE WHEN status IN ('present', 'late') THEN 1 END) as actual_work_days,
@@ -57,12 +63,18 @@ module.exports = (db) => {
                 const workingDays = stats.actual_work_days || 0;
                 const lateCount = stats.late_count || 0;
 
-                const baseSalary = parseFloat(ct.basic_salary) || 0;
-                const actualBase = (baseSalary / standardDays) * workingDays;
+                // --- PHẦN LOGIC QUAN TRỌNG ---
+                const luongGocHopDong = parseFloat(ct.basic_salary) || 0; // Con số 18tr, 20tr
+                
+                // Tính toán các khoản thực tế dựa trên ngày công
+                const actualBase = (luongGocHopDong / standardDays) * workingDays;
                 const actualMeal = ((parseFloat(ct.allowance_meal) || 0) / standardDays) * workingDays;
                 const actualParking = ((parseFloat(ct.allowance_parking) || 0) / standardDays) * workingDays;
+                
                 const deductions = lateCount * lateFine;
                 const bonus = 0; 
+
+                // Lương thực nhận cuối cùng
                 const finalSalary = actualBase + actualMeal + actualParking + bonus - deductions;
 
                 const sqlSave = `
@@ -78,13 +90,18 @@ module.exports = (db) => {
                         unpaid_days=VALUES(unpaid_days), 
                         final_salary=VALUES(final_salary),
                         allowance_meal=VALUES(allowance_meal),
-                        allowance_parking=VALUES(allowance_parking),
-                        status=status -- GIỮ NGUYÊN STATUS CŨ (Để tránh việc đã trả rồi lại quay về pending)
+                        allowance_parking=VALUES(allowance_parking)
                 `;
                 
                 await dbPromise.execute(sqlSave, [
-                    ct.user_id, month, year, actualBase, bonus, deductions, 
-                    stats.absent_days, finalSalary, actualMeal, actualParking
+                    ct.user_id, month, year, 
+                    luongGocHopDong, // <--- LƯU LƯƠNG GỐC VÀO ĐÂY (Theo ý bro)
+                    bonus, 
+                    deductions, 
+                    stats.absent_days, 
+                    finalSalary, 
+                    actualMeal, 
+                    actualParking
                 ]);
             }
 

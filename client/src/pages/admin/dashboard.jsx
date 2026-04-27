@@ -14,7 +14,6 @@ const Dashboard = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // FIX: Đổi URL từ /api/dashboard thành /api/admin/dashboard
         fetch('http://localhost:5000/api/admin/dashboard/stats')
             .then(res => {
                 if (!res.ok) throw new Error("Không tìm thấy API Admin");
@@ -43,7 +42,6 @@ const Dashboard = () => {
 
             {/* HÀNG THẺ THỐNG KÊ (STATS CARDS) */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-
                 <div onClick={() => navigate('/admin/employees')} className="active:scale-95 transition-transform cursor-pointer">
                     <StatCard icon="👥" label="Nhân sự" value={stats.totalEmployees} color="indigo" />
                 </div>
@@ -59,7 +57,6 @@ const Dashboard = () => {
                 <div onClick={() => navigate('/admin/leaves')} className="active:scale-95 transition-transform cursor-pointer">
                     <StatCard icon="📅" label="Đơn nghỉ" value={stats.pendingLeaves} color="rose" />
                 </div>
-
             </div>
 
             {/* BIỂU ĐỒ PHÂN BỔ NHÂN SỰ */}
@@ -71,12 +68,26 @@ const Dashboard = () => {
                     Phân bổ nhân sự toàn công ty
                 </h3>
                 
-                <div className="h-[400px] w-full relative z-10">
+                <div className="h-[480px] w-full relative z-10"> {/* Tăng chiều cao để đủ chỗ cho nhãn nghiêng */}
                     <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={stats.chartData}>
+                        <BarChart data={stats.chartData} margin={{ top: 10, right: 10, left: 0, bottom: 60 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontWeight: 'bold', fontSize: 12 }} />
-                            <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontWeight: 'bold' }} />
+                            <XAxis 
+                                dataKey="name" 
+                                axisLine={false} 
+                                tickLine={false} 
+                                interval={0} // Hiện tất cả các tên phòng ban
+                                angle={-25} // Nghiêng chữ để không đè nhau
+                                textAnchor="end"
+                                height={80}
+                                tick={{ fill: '#94a3b8', fontWeight: 'bold', fontSize: 11 }} 
+                            />
+                            <YAxis 
+                                axisLine={false} 
+                                tickLine={false} 
+                                allowDecimals={false} // Chỉ hiện số nguyên 1, 2, 3...
+                                tick={{ fill: '#94a3b8', fontWeight: 'bold' }} 
+                            />
                             <Tooltip
                                 cursor={{ fill: '#f8fafc' }}
                                 contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 20px 50px rgba(0,0,0,0.1)', padding: '20px' }}
