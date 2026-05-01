@@ -63,17 +63,25 @@ const ManagerAttendance = () => {
     }, [fetchMyEmployees, fetchAttendanceData]);
 
     const handleEdit = (item) => {
-        setIsEditing(true);
-        setEditId(item.id);
-        setNewRecord({
-            emp_id: item.emp_id,
-            date: item.date.split('T')[0],
-            check_in: item.check_in || '08:00',
-            check_out: item.check_out || '17:00',
-            status: item.status
-        });
-        setShowAddModal(true);
-    };
+    setIsEditing(true);
+    setEditId(item.id);
+
+    // FIX LỖI LỆCH NGÀY: Tạo đối tượng Date và bóc tách thủ công
+    const d = new Date(item.date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const formattedDate = `${year}-${month}-${day}`;
+
+    setNewRecord({
+        emp_id: item.emp_id,
+        date: formattedDate, // Giờ nó là "2026-04-28" chuẩn theo giờ máy tính bro
+        check_in: item.check_in || '08:00',
+        check_out: item.check_out || '17:00',
+        status: item.status
+    });
+    setShowAddModal(true);
+};
 
     const handleStatusChangeInModal = (val) => {
         if (val === 'absent') {

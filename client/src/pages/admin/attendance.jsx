@@ -68,18 +68,25 @@ const AttendanceAdmin = () => {
 
     // Mở modal sửa
     const handleEdit = (item) => {
-        setIsEditing(true);
-        setEditId(item.id);
-        setNewRecord({
-            emp_id: item.emp_id,
-            date: item.date.split('T')[0],
-            check_in: item.check_in || '08:00',
-            check_out: item.check_out || '17:00',
-            status: item.status
-        });
-        setShowAddModal(true);
-    };
+    setIsEditing(true);
+    setEditId(item.id);
 
+    // FIX LỖI LÙI NGÀY: Chuyển đổi an toàn sang Local Date
+    const d = new Date(item.date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const formattedDate = `${year}-${month}-${day}`;
+
+    setNewRecord({
+        emp_id: item.emp_id,
+        date: formattedDate, // Kết quả luôn là "2026-04-28" chuẩn xác
+        check_in: item.check_in || '08:00',
+        check_out: item.check_out || '17:00',
+        status: item.status
+    });
+    setShowAddModal(true);
+};
     const handleTimeChange = (type, value) => {
         if (newRecord.status === 'absent') return; // Nếu vắng thì không quan tâm giờ
         
