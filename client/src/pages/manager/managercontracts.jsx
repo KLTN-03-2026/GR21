@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { FileText, Search, Calendar, Briefcase, ShieldCheck, AlertCircle, Filter, Send, History } from 'lucide-react';
+import { FileText, Search, Calendar, Briefcase, ShieldCheck, AlertCircle, Filter, Send } from 'lucide-react';
 
 const ManagerContracts = () => {
     const [contracts, setContracts] = useState([]);
@@ -9,19 +9,19 @@ const ManagerContracts = () => {
     const [filterStatus, setFilterStatus] = useState('all');
     
     const manager = JSON.parse(localStorage.getItem('user'));
-    const managerId = manager?.id;
+    // 🛠️ LÀM SẠCH ID MANAGER NGAY TỪ ĐẦU
+    const managerId = manager?.id ? String(manager.id).split(':')[0] : null;
 
     const fetchContracts = useCallback(async () => {
         if (!managerId) return;
-        const cleanId = String(managerId).split(':')[0];
         setLoading(true);
         try {
-            // Sử dụng API lấy team-contracts, Backend đã lọc chỉ lấy cái mới nhất rồi
-            const res = await axios.get(`http://localhost:5000/api/manager/contracts/team-contracts/${cleanId}?statusFilter=${filterStatus}`);
+            // Gửi statusFilter lên Backend để Backend lọc dữ liệu chuẩn xác
+            const res = await axios.get(`http://localhost:5000/api/manager/contracts/team-contracts/${managerId}?statusFilter=${filterStatus}`);
             setContracts(res.data);
         // eslint-disable-next-line no-unused-vars
         } catch (err) {
-            console.error("Lỗi lấy danh sách hợp đồng!");
+            console.error("❌ Lỗi lấy danh sách hợp đồng!");
         } finally {
             setLoading(false);
         }
@@ -31,17 +31,21 @@ const ManagerContracts = () => {
         fetchContracts(); 
     }, [fetchContracts]);
 
-    // 🛠️ HÀM GỬI ĐỀ XUẤT LÊN ADMIN
+    // 🛠️ HÀM GỬI ĐỀ XUẤT LÊN ADMIN (ĐÃ FIX LỖI 404)
     const handleProposeRenewal = async (id, name) => {
+        // 🛠️ LÀM SẠCH ID NHÂN VIÊN: Chuyển "25:1" thành "25"
         const cleanId = String(id).split(':')[0];
+        
         if (!window.confirm(`Bro muốn gửi đề xuất gia hạn cho nhân viên ${name} lên Admin chứ?`)) return;
 
         try {
+            // Sử dụng PATCH và truyền cleanId sạch sẽ vào URL
             const res = await axios.patch(`http://localhost:5000/api/manager/contracts/propose-renewal/${cleanId}`);
             alert("🔥 " + res.data.message);
-            fetchContracts(); 
+            fetchContracts(); // Reload lại danh sách sau khi đề xuất thành công
         } catch (err) {
-            alert("❌ Lỗi: " + (err.response?.data?.message || "Không thể gửi đề xuất"));
+            console.error("❌ Lỗi gửi đề xuất:", err.response);
+            alert("❌ Lỗi: " + (err.response?.data?.message || "Không thể thực hiện đề xuất (404/500)"));
         }
     };
 
@@ -105,13 +109,12 @@ const ManagerContracts = () => {
                             <th className="p-6 text-right">Trạng thái quản lý</th>
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-50">
+                    <tbody className="divide-y divide-slate-50 font-sans">
                         {loading ? (
                             <tr><td colSpan="6" className="p-20 text-center animate-pulse font-black text-slate-300 uppercase italic">ĐANG TRÍCH XUẤT HỒ SƠ...</td></tr>
                         ) : filtered.length === 0 ? (
                             <tr><td colSpan="6" className="p-20 text-center font-bold text-slate-400 uppercase text-xs tracking-widest">Không có dữ liệu phù hợp bro ơi!</td></tr>
                         ) : filtered.map((item) => {
-                            // diffDays chính là days_left từ Backend
                             const diffDays = item.days_left;
 
                             return (
@@ -143,13 +146,11 @@ const ManagerContracts = () => {
                                         </div>
                                     </td>
                                     <td className="p-6 text-right flex flex-col items-end gap-2">
-                                        {/* LOGIC FIX DỨT ĐIỂM "VÔ THỜI HẠN" BỊ ĐỎ */}
                                         {item.contract_status === 'Chờ gia hạn' ? (
                                             <span className="px-4 py-1.5 rounded-full text-[9px] font-black uppercase border border-indigo-200 bg-indigo-50 text-indigo-500 flex items-center gap-1">
                                                 <Send size={12} /> Chờ Admin ký
                                             </span>
-                                        ) : diffDays === null ? (
-                                            /* Nếu Backend trả về null (vô thời hạn) thì hiện Xanh mướt */
+                                        ) : item.end_date === null ? (
                                             <span className="px-4 py-1.5 rounded-full text-[9px] font-black uppercase border border-emerald-100 bg-emerald-50 text-emerald-500 flex items-center gap-1 shadow-sm">
                                                 <ShieldCheck size={12} /> Hiệu lực (Vô hạn)
                                             </span>

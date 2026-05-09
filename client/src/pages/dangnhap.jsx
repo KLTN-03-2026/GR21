@@ -26,9 +26,10 @@ const DangNhap = () => {
         localStorage.setItem('user', JSON.stringify(user));
         localStorage.setItem('userRole', user.role); 
         localStorage.setItem('userName', user.username);
+        // Lưu thêm userId để dùng cho các chức năng khác (như check tự xóa mình)
+        localStorage.setItem('userId', user.id);
 
         // ✅ BƯỚC 3: Điều hướng "đúng chuồng"
-        // Thêm điều kiện check role manager bro vừa mới đổi trong DB
         if (user.role === 'admin') {
           window.location.href = '/admin/dashboard';
         } else if (user.role === 'manager') {
@@ -41,13 +42,27 @@ const DangNhap = () => {
         }
       }
     } catch (err) {
-      console.error("Lỗi đăng nhập chi tiết:", err);
+      console.error("❌ Lỗi đăng nhập chi tiết:", err);
+
+      // 🛠️ BẮT LỖI TỪ BACKEND TRẢ VỀ
       if (err.response) {
-        alert(err.response.data.message || "Tài khoản hoặc mật khẩu không chính xác!");
+        const status = err.response.status;
+        const message = err.response.data.message;
+
+        if (status === 403) {
+          // Trường hợp tài khoản bị 'inactive'
+          alert(`🚫 THÔNG BÁO: ${message}`);
+        } else if (status === 401) {
+          // Trường hợp sai ID hoặc Pass
+          alert("❌ " + (message || "Tài khoản hoặc mật khẩu không chính xác!"));
+        } else {
+          // Các lỗi khác từ server (500, 400,...)
+          alert("💥 Lỗi hệ thống: " + (message || "Có lỗi xảy ra!"));
+        }
       } else if (err.request) {
-        alert("Không thể kết nối tới máy chủ. Bro check xem Backend đã chạy chưa!");
+        alert("🔌 Không thể kết nối tới máy chủ. Bro check xem Backend đã chạy chưa!");
       } else {
-        alert("Có lỗi xảy ra trong quá trình đăng nhập!");
+        alert("❓ Có lỗi xảy ra trong quá trình đăng nhập!");
       }
     } finally {
       setLoading(false);
@@ -68,10 +83,10 @@ const DangNhap = () => {
               <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-indigo-600 font-black shadow-lg">21</div>
               <span className="font-black tracking-widest uppercase text-sm opacity-90">Nhóm 21 HRM System</span>
             </div>
-            <h2 className="text-6xl font-black leading-tight tracking-tighter">
+            <h2 className="text-6xl font-black leading-tight tracking-tighter italic">
               HRM <br /> Portal.
             </h2>
-            <p className="mt-8 text-indigo-100 text-lg opacity-80 leading-relaxed max-w-xs font-medium">
+            <p className="mt-8 text-indigo-100 text-lg opacity-80 leading-relaxed max-w-xs font-medium italic">
               Chào mừng quay trở lại. Hãy đăng nhập để truy cập vào hệ thống quản lý.
             </p>
           </div>
@@ -88,15 +103,15 @@ const DangNhap = () => {
         </div>
 
         {/* CỘT PHẢI: FORM ĐĂNG NHẬP */}
-        <div className="w-full lg:w-1/2 p-10 md:p-20 flex flex-col justify-center bg-white">
-          <div className="mb-10 text-center lg:text-left">
-            <h3 className="text-4xl font-black text-slate-800 tracking-tight">Đăng nhập</h3>
-            <p className="text-slate-500 mt-3 font-medium">Vui lòng nhập tài khoản để tiếp tục</p>
+        <div className="w-full lg:w-1/2 p-10 md:p-20 flex flex-col justify-center bg-white text-left">
+          <div className="mb-10 text-left">
+            <h3 className="text-4xl font-black text-slate-800 tracking-tight italic uppercase">Đăng nhập</h3>
+            <p className="text-slate-500 mt-3 font-bold text-sm italic uppercase opacity-60">Vui lòng nhập tài khoản để tiếp tục</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
-              <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2">Tài khoản</label>
+              <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] ml-2 italic">Tài khoản</label>
               <input
                 type="text"
                 required
@@ -108,8 +123,8 @@ const DangNhap = () => {
 
             <div className="space-y-2">
               <div className="flex justify-between items-center px-2">
-                <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Mật khẩu</label>
-                <button type="button" className="text-[11px] font-bold text-indigo-600 hover:underline">Quên mật khẩu?</button>
+                <label className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] italic">Mật khẩu</label>
+                <button type="button" className="text-[11px] font-bold text-indigo-600 hover:underline italic">Quên mật khẩu?</button>
               </div>
               <div className="relative">
                 <input
@@ -132,16 +147,16 @@ const DangNhap = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-slate-900 text-white py-5 rounded-[2rem] font-black text-xl hover:bg-indigo-600 transition-all shadow-2xl shadow-indigo-100 active:scale-95 mt-6 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest"
+              className="w-full bg-slate-900 text-white py-6 rounded-[2rem] font-black text-lg hover:bg-indigo-600 transition-all shadow-2xl shadow-indigo-100 active:scale-95 mt-6 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-widest italic"
             >
               {loading ? "Đang xử lý..." : "Vào hệ thống →"}
             </button>
           </form>
 
-          <div className="mt-12 pt-8 border-t border-slate-50 text-center lg:text-left">
-            <p className="text-slate-500 text-sm font-medium">
+          <div className="mt-12 pt-8 border-t border-slate-50 text-left">
+            <p className="text-slate-500 text-sm font-medium italic">
               Vấn đề đăng nhập?{' '}
-              <a href="tel:090xxxxxxx" className="text-indigo-600 font-bold hover:underline">Liên hệ Admin Nhóm 21</a>
+              <a href="tel:090xxxxxxx" className="text-indigo-600 font-bold hover:underline italic">Liên hệ Admin Nhóm 21</a>
             </p>
           </div>
         </div>

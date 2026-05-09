@@ -4,11 +4,34 @@ const router = express.Router();
 module.exports = (db) => {
     const dbPromise = db.promise ? db.promise() : db;
 
-    // 1. [POST] Nhân viên gửi đơn xin nghỉ mới
+    // 1. [POST] Nhân viên gửi đơn xin nghỉ mới (ĐÃ FIX CHỐNG QUÁ KHỨ)
     router.post('/send', async (req, res) => {
         const { emp_id, leave_type, start_date, end_date, reason } = req.body;
 
         try {
+            // --- 🛠️ BỘ LỌC CHỐNG XUYÊN KHÔNG ---
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Đưa về 00:00:00 để so sánh chuẩn ngày
+
+            const start = new Date(start_date);
+            const end = new Date(end_date);
+
+            // 1. Kiểm tra ngày bắt đầu
+            if (start < today) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: "Bro không thể xin nghỉ phép cho các ngày trong quá khứ được! 🕰️" 
+                });
+            }
+
+            // 2. Kiểm tra ngày kết thúc
+            if (end < start) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: "Ngày kết thúc không được trước ngày bắt đầu đâu bro ơi!" 
+                });
+            }
+
             // Mặc định status là 'pending' khi mới gửi
             const sql = `
                 INSERT INTO leave_requests (emp_id, leave_type, start_date, end_date, reason, status) 

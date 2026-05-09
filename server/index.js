@@ -11,10 +11,10 @@ app.use(express.json());
 // 1. KẾT NỐI DATABASE
 // ==========================================
 const db = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: 'Lk2308**', 
-    database: 'hrm_db'
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || process.env.DB_PASS || '', 
+    database: process.env.DB_NAME || 'hrm_db'
 });
 
 db.connect(err => {

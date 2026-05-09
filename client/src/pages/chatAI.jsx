@@ -3,18 +3,32 @@ import axios from 'axios';
 import { Send, X, Bot, MessageCircle, Sparkles } from 'lucide-react';
 
 const ChatboxAI = () => {
-    // Tự động lấy empId từ userLocal nếu có
-    const userLocal = JSON.parse(localStorage.getItem('user'));
-    const empId = userLocal?.id || null;
+    // Hàm bổ trợ lấy thông tin user mới nhất từ localStorage
+    const getAuthPayload = () => {
+        try {
+            const userLocal = JSON.parse(localStorage.getItem('user'));
+            // Đảm bảo bốc đúng các trường để Backend xử lý 10 bảng dữ liệu
+            return {
+                empId: userLocal?.id || null,
+                role: userLocal?.role || 'guest',
+                deptId: userLocal?.dep_id || userLocal?.dept_id || null 
+            };
+        // eslint-disable-next-line no-unused-vars
+        } catch (e) {
+            return { empId: null, role: 'guest', deptId: null };
+        }
+    };
 
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([
-        { role: 'ai', text: 'What\'s up bro! Tui là trợ lý AI Nhóm 21. Bro cần check lương, hỏi tuyển dụng hay tâm sự mỏng không?' }
+        { 
+            role: 'ai', 
+            text: "Xin chào! Tôi là Trợ lý Nhân sự AI của Nhóm 21. Tôi có thể hỗ trợ bạn kiểm tra thông tin cá nhân, quy định công ty hoặc các báo cáo nhân sự liên quan. Bạn cần hỗ trợ vấn đề gì không?" 
+        }
     ]);
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     
-    // Cuộn xuống tin nhắn mới nhất
     const messagesEndRef = useRef(null);
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -31,16 +45,24 @@ const ChatboxAI = () => {
         setInput('');
 
         try {
-            // Gọi API AI với empId (null nếu chưa login)
+            const authPayload = getAuthPayload();
+            
+            // Console log để kiểm tra payload trong quá trình demo
+            console.log("🚀 [Nhóm 21] AI Request Payload:", authPayload);
+
+            // Gọi API AI với đầy đủ định danh để phân quyền truy cập Database
             const res = await axios.post('http://localhost:5000/api/ai/ask-ai', { 
                 question: currentInput, 
-                empId: empId 
+                ...authPayload 
             });
             
             setMessages(prev => [...prev, { role: 'ai', text: res.data.answer }]);
-        // eslint-disable-next-line no-unused-vars
         } catch (err) {
-            setMessages(prev => [...prev, { role: 'ai', text: 'Bot đang bận đi đá bóng rồi bro, tí hỏi lại t nhé!' }]);
+            console.error("Lỗi Chat AI:", err);
+            setMessages(prev => [...prev, { 
+                role: 'ai', 
+                text: 'Hệ thống đang gặp sự cố kết nối. Vui lòng thử lại sau hoặc liên hệ bộ phận kỹ thuật.' 
+            }]);
         } finally {
             setLoading(false);
         }
@@ -106,7 +128,7 @@ const ChatboxAI = () => {
                             value={input} 
                             onChange={(e) => setInput(e.target.value)} 
                             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                            placeholder="Hỏi tui về lương, tuyển dụng..." 
+                            placeholder="Nhập câu hỏi về lương, lịch làm việc..." 
                             className="flex-1 bg-slate-100 rounded-2xl px-4 py-3 text-[11px] font-bold focus:outline-none focus:ring-2 ring-indigo-100 transition-all"
                         />
                         <button 

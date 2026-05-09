@@ -31,28 +31,67 @@ const ProfileEmployee = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => { if (userLocal?.id) fetchProfile(); }, [userLocal.id]);
 
+    // 🛠️ HÀM LƯU HỒ SƠ CÓ VALIDATION
     const handleSaveProfile = async () => {
+        // 1. Kiểm tra để trống
+        if (!tempProfile.email?.trim() || !tempProfile.phone?.trim() || !tempProfile.address?.trim()) {
+            alert("❌ Bro không được để trống thông tin nào nhé!");
+            return;
+        }
+
+        // 2. Kiểm tra định dạng Email
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(tempProfile.email)) {
+            alert("❌ Định dạng Email sai rồi kìa bro!");
+            return;
+        }
+
+        // 3. Kiểm tra định dạng Số điện thoại (10 số VN)
+        const phoneRegex = /^(0[3|5|7|8|9])([0-9]{8})$/;
+        if (!phoneRegex.test(tempProfile.phone)) {
+            alert("❌ Số điện thoại phải có 10 chữ số và đúng đầu số Việt Nam!");
+            return;
+        }
+
+        // 4. Kiểm tra độ dài địa chỉ
+        if (tempProfile.address.trim().length < 5) {
+            alert("❌ Địa chỉ cần cụ thể hơn (ít nhất 5 ký tự)!");
+            return;
+        }
+
         try {
             await axios.put(`http://localhost:5000/api/employee/profile/update/${userLocal.id}`, {
-                email: tempProfile.email,
-                phone: tempProfile.phone,
-                address: tempProfile.address
+                email: tempProfile.email.trim(),
+                phone: tempProfile.phone.trim(),
+                address: tempProfile.address.trim()
             });
             setProfile(tempProfile);
             setIsEditing(false);
             alert("Hồ sơ cập nhật thành công rồi bro! ✨");
-        // eslint-disable-next-line no-unused-vars
         } catch (err) {
-            alert("Lỗi cập nhật rồi bro ơi!");
+            alert(err.response?.data?.message || "Lỗi cập nhật rồi bro ơi!");
         }
     };
 
+    // 🛠️ HÀM ĐỔI MẬT KHẨU CÓ VALIDATION
     const handleChangePassword = async (e) => {
         e.preventDefault();
-        if (pwdData.newPassword !== pwdData.confirmPassword) {
-            alert("Mật khẩu xác nhận không khớp!");
+        
+        if (!pwdData.oldPassword.trim() || !pwdData.newPassword.trim()) {
+            alert("❌ Điền đủ các ô mật khẩu đã bro!");
             return;
         }
+
+        if (pwdData.newPassword.length < 6) {
+            alert("❌ Mật khẩu mới phải từ 6 ký tự trở lên cho an toàn!");
+            return;
+        }
+
+        if (pwdData.newPassword !== pwdData.confirmPassword) {
+            alert("❌ Mật khẩu xác nhận không khớp!");
+            return;
+        }
+
         setSubmitting(true);
         try {
             await axios.put(`http://localhost:5000/api/employee/profile/change-password`, {
@@ -76,7 +115,6 @@ const ProfileEmployee = () => {
 
     return (
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-10 duration-700 pb-10 text-left">
-            {/* HEADER & ACTIONS */}
             <div className="flex justify-between items-end">
                 <div>
                     <h2 className="text-4xl font-black text-slate-800 tracking-tighter uppercase flex items-center gap-4">
@@ -106,7 +144,6 @@ const ProfileEmployee = () => {
                 </div>
             </div>
 
-            {/* MAIN CARD */}
             <div className="bg-white rounded-[4rem] border border-slate-100 shadow-2xl overflow-hidden relative">
                 <div className="h-40 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 relative rounded-[2.5rem] mx-4 mt-4 shadow-inner">
                     <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]"></div>
@@ -135,27 +172,13 @@ const ProfileEmployee = () => {
                         </div>
                     </div>
 
-                    {/* Grid thông tin chi tiết */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <InfoBox icon={<Briefcase />} label="Chức danh" value={profile?.position} />
-                        
-                        {/* EDITABLE FIELDS */}
                         <InfoBox icon={<Mail />} label="Email liên hệ" value={tempProfile?.email} isEdit={isEditing} onChange={(v) => setTempProfile({...tempProfile, email: v})} />
                         <InfoBox icon={<Phone />} label="Số điện thoại" value={tempProfile?.phone} isEdit={isEditing} onChange={(v) => setTempProfile({...tempProfile, phone: v})} />
                         <InfoBox icon={<MapPin />} label="Địa chỉ" value={tempProfile?.address} isEdit={isEditing} onChange={(v) => setTempProfile({...tempProfile, address: v})} />
-                        
-                        {/* FORMAT 2 NGÀY ĐỂ BRO HẾT LĂN TĂN */}
-                        <InfoBox 
-                            icon={<Calendar />} 
-                            label="Ngày tạo hồ sơ" 
-                            value={profile?.join_date ? new Date(profile.join_date).toLocaleDateString('vi-VN') : 'N/A'} 
-                        />
-                        <InfoBox 
-                            icon={<ShieldCheck />} 
-                            label="Ngày chính thức" 
-                            value={profile?.official_date ? new Date(profile.official_date).toLocaleDateString('vi-VN') : 'Đang chờ ký hợp đồng'} 
-                            isStatus={!!profile?.official_date}
-                        />
+                        <InfoBox icon={<Calendar />} label="Ngày tạo hồ sơ" value={profile?.join_date ? new Date(profile.join_date).toLocaleDateString('vi-VN') : 'N/A'} />
+                        <InfoBox icon={<ShieldCheck />} label="Ngày chính thức" value={profile?.official_date ? new Date(profile.official_date).toLocaleDateString('vi-VN') : 'Đang chờ ký hợp đồng'} isStatus={!!profile?.official_date} />
                     </div>
 
                     <div className="mt-12 pt-10 border-t border-slate-50">
@@ -166,7 +189,6 @@ const ProfileEmployee = () => {
                 </div>
             </div>
 
-            {/* MODAL PASSWORD */}
             {showPasswordModal && (
                 <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setShowPasswordModal(false)}></div>

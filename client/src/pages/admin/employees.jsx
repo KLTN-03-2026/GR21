@@ -15,7 +15,7 @@ const Employees = () => {
     full_name: '', email: '', phone: '', dep_id: '', position: '', 
     username: '', password: '', role: 'employee',
     dob: '', gender: 'Nam', address: '', identity_card: '',
-    bank_account: '', bank_name: ''
+    bank_account: '', bank_name: '', base_salary: ''
   });
 
   const [editingEmp, setEditingEmp] = useState(null);
@@ -40,8 +40,44 @@ const Employees = () => {
     }
   };
 
+  // 🛠️ HÀM VALIDATION CHUNG
+  const validateData = (data) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const phoneRegex = /^(0[3|5|7|8|9])([0-9]{8})$/;
+
+    if (!data.full_name?.trim()) return "Họ tên không được để trống!";
+    if (!data.email?.trim() || !emailRegex.test(data.email)) return "Email không hợp lệ!";
+    if (!data.phone?.trim() || !phoneRegex.test(data.phone)) return "Số điện thoại phải có 10 số VN!";
+    if (!data.dep_id) return "Vui lòng chọn phòng ban!";
+    if (!data.position?.trim()) return "Chức vụ không được để trống!";
+    if (!data.identity_card?.trim() || data.identity_card.length < 9) return "Số CCCD không hợp lệ!";
+    if (!data.address?.trim()) return "Địa chỉ không được để trống!";
+    return null;
+  };
+
+  // 🛠️ CHECK MẬT KHẨU MẠNH (6 ký tự, 1 Hoa, 1 Đặc biệt)
+  const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*]).{6,}$/;
+
   const handleAddSubmit = async (e) => {
     e.preventDefault();
+    
+    // Check validation thông tin cơ bản
+    const error = validateData(newEmp);
+    if (error) return alert(`❌ ${error}`);
+    
+    // Check Username
+    if (!newEmp.username?.trim()) return alert("❌ Username không được để trống!");
+
+    // 🛠️ CHECK MẬT KHẨU CỰC CĂNG
+    if (!passwordRegex.test(newEmp.password)) {
+      return alert(
+        "❌ Mật khẩu chưa đủ 'đô' bro ơi!\n" +
+        "- Tối thiểu 6 ký tự\n" +
+        "- Phải có ít nhất 1 chữ HOA\n" +
+        "- Phải có ít nhất 1 ký tự đặc biệt (!@#$%^&*)"
+      );
+    }
+
     try {
       const res = await axios.post('http://localhost:5000/api/employees', newEmp);
       alert(res.data.message || "Đã chiêu mộ nhân tài thành công! 🚀");
@@ -50,11 +86,11 @@ const Employees = () => {
         full_name: '', email: '', phone: '', dep_id: '', position: '', 
         username: '', password: '', role: 'employee',
         dob: '', gender: 'Nam', address: '', identity_card: '',
-        bank_account: '', bank_name: '' 
+        bank_account: '', bank_name: '', base_salary: ''
       });
       fetchData();
     } catch (err) {
-      alert("Lỗi thêm: " + (err.response?.data || err.message));
+      alert("Lỗi thêm: " + (err.response?.data?.message || err.response?.data || err.message));
     }
   };
 
@@ -70,11 +106,12 @@ const Employees = () => {
     }
   };
 
-  // 🔥 HÀM CẬP NHẬT CHUẨN
   const handleEditSubmit = async (e) => {
     e.preventDefault();
+    const error = validateData(editingEmp);
+    if (error) return alert(`❌ ${error}`);
+
     try {
-        // Format lại ngày sinh về YYYY-MM-DD để SQL không báo lỗi 500
         const payload = {
             ...editingEmp,
             dob: editingEmp.dob ? editingEmp.dob.split('T')[0] : null
@@ -84,8 +121,7 @@ const Employees = () => {
         setShowEditModal(false);
         fetchData();
     } catch (err) {
-        console.error("Lỗi update:", err.response?.data);
-        alert("Lỗi update: " + (err.response?.data || err.message));
+        alert("Lỗi update: " + (err.response?.data?.message || err.response?.data || err.message));
     }
   };
 
@@ -97,12 +133,12 @@ const Employees = () => {
   if (loading) return <div className="p-20 text-center font-black text-slate-300 animate-pulse uppercase tracking-[0.3em]">Hệ thống đang quét dữ liệu...</div>;
 
   return (
-    <div className="animate-in fade-in slide-in-from-bottom-6 duration-700 p-6 text-left">
+    <div className="animate-in fade-in slide-in-from-bottom-6 duration-700 p-6 text-left text-sans">
       <div className="bg-white rounded-[3.5rem] shadow-xl border border-slate-100 overflow-hidden">
         
         {/* --- HEADER --- */}
-        <div className="p-10 flex flex-col lg:flex-row justify-between items-center border-b border-slate-50 bg-white sticky top-0 z-10 gap-6">
-          <div className="text-left w-full lg:w-auto">
+        <div className="p-10 flex flex-col lg:flex-row justify-between items-center border-b border-slate-50 bg-white sticky top-0 z-10 gap-6 text-left">
+          <div className="w-full lg:w-auto">
             <h2 className="text-3xl font-black text-slate-800 uppercase italic tracking-tighter">👥 Hồ sơ nhân sự</h2>
             <p className="text-slate-400 font-bold text-xs mt-1 uppercase tracking-widest italic">Nhóm 21 - HRM Intelligence</p>
           </div>
@@ -143,7 +179,7 @@ const Employees = () => {
             <tbody className="divide-y divide-slate-50 font-sans">
               {filteredEmployees.map((emp) => (
                 <tr key={emp.id} className="hover:bg-slate-50/20 transition-all group">
-                  <td className="p-8 text-left">
+                  <td className="p-8">
                     <div className="flex items-center gap-5">
                       <div className="w-14 h-14 bg-slate-900 rounded-[1.5rem] flex items-center justify-center text-white font-black text-xl shadow-lg group-hover:bg-indigo-600 transition-colors italic">
                         {emp.full_name?.charAt(0)}
@@ -154,7 +190,7 @@ const Employees = () => {
                       </div>
                     </div>
                   </td>
-                  <td className="p-8 text-left">
+                  <td className="p-8">
                     <div className="flex flex-col gap-1">
                         <span className="px-4 py-1.5 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-black uppercase tracking-widest border border-indigo-100 w-fit">
                             {emp.department_name || 'Phòng ban mới'}
@@ -162,7 +198,7 @@ const Employees = () => {
                         <span className="text-[11px] font-bold text-slate-400 italic ml-1">{emp.position}</span>
                     </div>
                   </td>
-                  <td className="p-8 text-left">
+                  <td className="p-8">
                     <div className="flex flex-col">
                       <span className="font-black text-slate-700 text-sm italic flex items-center gap-1"><Phone size={12}/> {emp.phone}</span>
                       <span className="text-slate-400 text-[11px] font-bold flex items-center gap-1"><Mail size={12}/> {emp.email}</span>
@@ -171,7 +207,7 @@ const Employees = () => {
                   <td className="p-8 font-black text-slate-400 text-sm italic">
                     {emp.join_date ? new Date(emp.join_date).toLocaleDateString('vi-VN') : '---'}
                   </td>
-                  <td className="p-8 text-center">
+                  <td className="p-8 text-center text-nowrap">
                     <div className="flex justify-center gap-2">
                        <button onClick={() => {setEditingEmp(emp); setShowEditModal(true);}} className="p-3 bg-white border border-slate-100 rounded-xl hover:bg-slate-900 hover:text-white transition-all shadow-sm"><Edit3 size={16}/></button>
                        <button onClick={() => handleDelete(emp.id)} className="p-3 bg-white border border-slate-100 rounded-xl hover:bg-rose-500 hover:text-white transition-all shadow-sm"><Trash2 size={16}/></button>
@@ -195,64 +231,85 @@ const Employees = () => {
             
             <form onSubmit={handleAddSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-6">
-                <div className="bg-slate-50 p-6 rounded-[2.5rem] space-y-4 border border-slate-100 text-left">
+                <div className="bg-slate-50 p-6 rounded-[2.5rem] space-y-4 border border-slate-100">
                     <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2"><User size={12}/> 1. Thông tin cá nhân</p>
                     <div>
-                        <label className="text-[10px] font-black uppercase text-slate-400 ml-2 mb-1 block">Họ và tên</label>
+                        <label className="text-[10px] font-black uppercase text-slate-400 ml-2 mb-1 block italic">Họ và tên</label>
                         <input required className="w-full bg-white p-4 rounded-xl font-bold outline-none border border-slate-100 text-sm" value={newEmp.full_name} onChange={(e) => setNewEmp({...newEmp, full_name: e.target.value})} />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="text-[10px] font-black uppercase text-slate-400 ml-2 mb-1 block">Ngày sinh</label>
+                            <label className="text-[10px] font-black uppercase text-slate-400 ml-2 mb-1 block italic">Ngày sinh</label>
                             <input type="date" required className="w-full bg-white p-4 rounded-xl font-bold outline-none border border-slate-100 text-sm" onChange={(e) => setNewEmp({...newEmp, dob: e.target.value})} />
                         </div>
                         <div>
-                            <label className="text-[10px] font-black uppercase text-slate-400 ml-2 mb-1 block">Giới tính</label>
-                            <select className="w-full bg-white p-4 rounded-xl font-bold outline-none border border-slate-100 text-sm" onChange={(e) => setNewEmp({...newEmp, gender: e.target.value})}>
+                            <label className="text-[10px] font-black uppercase text-slate-400 ml-2 mb-1 block italic">Giới tính</label>
+                            <select className="w-full bg-white p-4 rounded-xl font-bold outline-none border border-slate-100 text-sm" value={newEmp.gender} onChange={(e) => setNewEmp({...newEmp, gender: e.target.value})}>
                                 <option value="Nam">Nam</option><option value="Nữ">Nữ</option><option value="Khác">Khác</option>
                             </select>
                         </div>
                     </div>
                     <div>
-                        <label className="text-[10px] font-black uppercase text-slate-400 ml-2 mb-1 block">Số CCCD / Email cá nhân</label>
+                        <label className="text-[10px] font-black uppercase text-slate-400 ml-2 mb-1 block italic">Số CCCD / Email cá nhân</label>
                         <div className="grid grid-cols-2 gap-4">
-                            <input placeholder="Số CCCD" required className="w-full bg-white p-4 rounded-xl font-bold outline-none border border-slate-100 text-sm" onChange={(e) => setNewEmp({...newEmp, identity_card: e.target.value})} />
+                            <input placeholder="Số CCCD" required className="w-full bg-white p-4 rounded-xl font-bold outline-none border border-slate-100 text-sm" value={newEmp.identity_card} onChange={(e) => setNewEmp({...newEmp, identity_card: e.target.value})} />
                             <input placeholder="Email cá nhân" required type="email" className="w-full bg-white p-4 rounded-xl font-bold outline-none border border-slate-100 text-sm" value={newEmp.email} onChange={(e) => setNewEmp({...newEmp, email: e.target.value})} />
                         </div>
                     </div>
                     <div>
-                        <label className="text-[10px] font-black uppercase text-slate-400 ml-2 mb-1 block">Số điện thoại / Địa chỉ</label>
+                        <label className="text-[10px] font-black uppercase text-slate-400 ml-2 mb-1 block italic">Số điện thoại / Địa chỉ</label>
                         <div className="grid grid-cols-2 gap-4">
                             <input placeholder="Số điện thoại" required className="w-full bg-white p-4 rounded-xl font-bold outline-none border border-slate-100 text-sm" value={newEmp.phone} onChange={(e) => setNewEmp({...newEmp, phone: e.target.value})} />
-                            <input placeholder="Địa chỉ thường trú" required className="w-full bg-white p-4 rounded-xl font-bold outline-none border border-slate-100 text-sm" onChange={(e) => setNewEmp({...newEmp, address: e.target.value})} />
+                            <input placeholder="Địa chỉ thường trú" required className="w-full bg-white p-4 rounded-xl font-bold outline-none border border-slate-100 text-sm" value={newEmp.address} onChange={(e) => setNewEmp({...newEmp, address: e.target.value})} />
                         </div>
                     </div>
                 </div>
                 <div className="bg-emerald-50/50 p-6 rounded-[2.5rem] space-y-4 border border-emerald-100">
                     <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-2"><CreditCard size={12}/> 2. Tài khoản ngân hàng</p>
                     <div className="grid grid-cols-2 gap-4">
-                        <input placeholder="Số tài khoản" required className="w-full bg-white p-4 rounded-xl font-bold outline-none border border-emerald-100 text-sm" onChange={(e) => setNewEmp({...newEmp, bank_account: e.target.value})} />
-                        <input placeholder="Tên ngân hàng" required className="w-full bg-white p-4 rounded-xl font-bold outline-none border border-emerald-100 text-sm" onChange={(e) => setNewEmp({...newEmp, bank_name: e.target.value})} />
+                        <input placeholder="Số tài khoản" required className="w-full bg-white p-4 rounded-xl font-bold outline-none border border-emerald-100 text-sm" value={newEmp.bank_account} onChange={(e) => setNewEmp({...newEmp, bank_account: e.target.value})} />
+                        <input placeholder="Tên ngân hàng" required className="w-full bg-white p-4 rounded-xl font-bold outline-none border border-emerald-100 text-sm" value={newEmp.bank_name} onChange={(e) => setNewEmp({...newEmp, bank_name: e.target.value})} />
                     </div>
                 </div>
               </div>
               <div className="space-y-6">
-                <div className="bg-slate-50 p-6 rounded-[2.5rem] space-y-4 border border-slate-100 text-left">
+                <div className="bg-slate-50 p-6 rounded-[2.5rem] space-y-4 border border-slate-100">
                     <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-2"><Briefcase size={12}/> 3. Vị trí công tác</p>
                     <input placeholder="Chức vụ" required className="w-full bg-white p-4 rounded-xl font-bold border border-slate-100 text-sm" value={newEmp.position} onChange={(e) => setNewEmp({...newEmp, position: e.target.value})} />
                     <select required className="w-full bg-white p-4 rounded-xl font-bold border border-slate-100 text-sm appearance-none" value={newEmp.dep_id} onChange={(e) => setNewEmp({...newEmp, dep_id: e.target.value})}>
                         <option value="">-- Chọn phòng ban --</option>{departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
                     </select>
-                </div>
-                <div className="bg-indigo-600 p-8 rounded-[3rem] space-y-5 shadow-2xl shadow-indigo-200">
-                    <p className="text-[10px] font-black text-indigo-200 uppercase tracking-widest flex items-center gap-2"><Lock size={12}/> 4. Tài khoản hệ thống</p>
-                    <div className="grid grid-cols-2 gap-4">
-                        <input placeholder="Username" required className="w-full bg-white/10 text-white placeholder:text-indigo-300/50 p-4 rounded-xl font-bold border border-white/20 text-sm" value={newEmp.username} onChange={(e) => setNewEmp({...newEmp, username: e.target.value})} />
-                        <input placeholder="Password" required type="password" className="w-full bg-white/10 text-white placeholder:text-indigo-300/50 p-4 rounded-xl font-bold border border-white/20 text-sm" value={newEmp.password} onChange={(e) => setNewEmp({...newEmp, password: e.target.value})} />
+                    <div>
+                        <label className="text-[10px] font-black uppercase text-slate-400 ml-2 mb-1 block italic">Lương cơ bản (VND)</label>
+                        <input type="number" placeholder="Lương cơ bản" required className="w-full bg-white p-4 rounded-xl font-bold border border-slate-100 text-sm" value={newEmp.base_salary} onChange={(e) => setNewEmp({...newEmp, base_salary: e.target.value})} />
                     </div>
                 </div>
-                <button type="submit" className="w-full bg-slate-900 text-white py-7 rounded-[2.5rem] font-black uppercase text-xs tracking-[0.4em] hover:bg-indigo-600 transition-all shadow-2xl flex items-center justify-center gap-3 active:scale-95">
-                   <Save size={20}/> KÍCH HOẠT NHÂN SỰ
+                
+                {/* --- KHU VỰC TÀI KHOẢN (CÓ HIỂN THỊ HƯỚNG DẪN PW) --- */}
+                <div className="bg-indigo-600 p-8 rounded-[3rem] space-y-5 shadow-2xl shadow-indigo-200 text-left">
+                    <p className="text-[10px] font-black text-indigo-200 uppercase tracking-widest flex items-center gap-2"><Lock size={12}/> 4. Tài khoản hệ thống</p>
+                    <div className="grid grid-cols-2 gap-4">
+                        <input placeholder="Username" required className="w-full bg-white/10 text-white placeholder:text-indigo-300/50 p-4 rounded-xl font-bold border border-white/20 text-sm outline-none focus:ring-2 ring-white/30 transition-all" value={newEmp.username} onChange={(e) => setNewEmp({...newEmp, username: e.target.value})} />
+                        <div className="space-y-1">
+                          <input 
+                            placeholder="Password" 
+                            required 
+                            type="password" 
+                            className={`w-full bg-white/10 text-white placeholder:text-indigo-300/50 p-4 rounded-xl font-bold border text-sm outline-none focus:ring-2 ring-white/30 transition-all ${newEmp.password && !passwordRegex.test(newEmp.password) ? 'border-rose-400' : 'border-white/20'}`} 
+                            value={newEmp.password} 
+                            onChange={(e) => setNewEmp({...newEmp, password: e.target.value})} 
+                          />
+                          {newEmp.password && !passwordRegex.test(newEmp.password) && (
+                            <p className="text-[8px] text-rose-200 font-black italic uppercase leading-tight px-1">
+                                * Cần 6 ký tự, 1 chữ HOA & 1 ký tự đặc biệt
+                            </p>
+                          )}
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" className="w-full bg-slate-900 text-white py-7 rounded-[2.5rem] font-black uppercase text-xs tracking-[0.4em] hover:bg-indigo-600 transition-all shadow-2xl flex items-center justify-center gap-3 active:scale-95 italic">
+                    <Save size={20}/> KÍCH HOẠT NHÂN SỰ
                 </button>
               </div>
             </form>
@@ -260,7 +317,7 @@ const Employees = () => {
         </div>
       )}
 
-      {/* --- MODAL CHỈNH SỬA (FULL OPTION) --- */}
+      {/* --- MODAL CHỈNH SỬA --- */}
       {showEditModal && editingEmp && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4 animate-in fade-in zoom-in duration-200 text-left">
           <div className="bg-white w-full max-w-4xl rounded-[3rem] p-10 shadow-2xl overflow-y-auto max-h-[95vh] border border-slate-100">
@@ -268,37 +325,74 @@ const Employees = () => {
             <form onSubmit={handleEditSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-6">
                     <div className="bg-slate-50 p-6 rounded-[2.5rem] space-y-4 border border-slate-100 text-left">
-                        <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">1. Thông tin cá nhân</p>
-                        <input className="w-full bg-white p-4 rounded-xl font-bold border border-slate-100 text-sm" value={editingEmp.full_name} onChange={(e) => setEditingEmp({...editingEmp, full_name: e.target.value})} />
-                        <div className="grid grid-cols-2 gap-4">
-                            <input type="date" className="w-full bg-white p-4 rounded-xl font-bold border border-slate-100 text-sm" value={editingEmp.dob ? editingEmp.dob.split('T')[0] : ''} onChange={(e) => setEditingEmp({...editingEmp, dob: e.target.value})} />
-                            <select className="w-full bg-white p-4 rounded-xl font-bold border border-slate-100 text-sm" value={editingEmp.gender} onChange={(e) => setEditingEmp({...editingEmp, gender: e.target.value})}>
-                                <option value="Nam">Nam</option><option value="Nữ">Nữ</option>
-                            </select>
+                        <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest italic">1. Thông tin cá nhân</p>
+                        <div>
+                             <label className="text-[10px] font-black uppercase text-slate-400 ml-2 mb-1 block italic">Họ và tên</label>
+                             <input className="w-full bg-white p-4 rounded-xl font-bold border border-slate-100 text-sm" value={editingEmp.full_name} onChange={(e) => setEditingEmp({...editingEmp, full_name: e.target.value})} />
                         </div>
-                        <input placeholder="Số CCCD" className="w-full bg-white p-4 rounded-xl font-bold border border-slate-100 text-sm" value={editingEmp.identity_card} onChange={(e) => setEditingEmp({...editingEmp, identity_card: e.target.value})} />
                         <div className="grid grid-cols-2 gap-4">
-                            <input placeholder="Email" className="w-full bg-white p-4 rounded-xl font-bold border border-slate-100 text-sm" value={editingEmp.email} onChange={(e) => setEditingEmp({...editingEmp, email: e.target.value})} />
-                            <input placeholder="SĐT" className="w-full bg-white p-4 rounded-xl font-bold border border-slate-100 text-sm" value={editingEmp.phone} onChange={(e) => setEditingEmp({...editingEmp, phone: e.target.value})} />
+                            <div>
+                                <label className="text-[10px] font-black uppercase text-slate-400 ml-2 mb-1 block italic">Ngày sinh</label>
+                                <input type="date" className="w-full bg-white p-4 rounded-xl font-bold border border-slate-100 text-sm" value={editingEmp.dob ? editingEmp.dob.split('T')[0] : ''} onChange={(e) => setEditingEmp({...editingEmp, dob: e.target.value})} />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-black uppercase text-slate-400 ml-2 mb-1 block italic">Giới tính</label>
+                                <select className="w-full bg-white p-4 rounded-xl font-bold border border-slate-100 text-sm" value={editingEmp.gender} onChange={(e) => setEditingEmp({...editingEmp, gender: e.target.value})}>
+                                    <option value="Nam">Nam</option><option value="Nữ">Nữ</option><option value="Khác">Khác</option>
+                                </select>
+                            </div>
                         </div>
-                        <input placeholder="Địa chỉ" className="w-full bg-white p-4 rounded-xl font-bold border border-slate-100 text-sm" value={editingEmp.address} onChange={(e) => setEditingEmp({...editingEmp, address: e.target.value})} />
+                        <div>
+                             <label className="text-[10px] font-black uppercase text-slate-400 ml-2 mb-1 block italic">Số CCCD</label>
+                             <input placeholder="Số CCCD" className="w-full bg-white p-4 rounded-xl font-bold border border-slate-100 text-sm" value={editingEmp.identity_card} onChange={(e) => setEditingEmp({...editingEmp, identity_card: e.target.value})} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                 <label className="text-[10px] font-black uppercase text-slate-400 ml-2 mb-1 block italic">Email</label>
+                                 <input placeholder="Email" className="w-full bg-white p-4 rounded-xl font-bold border border-slate-100 text-sm" value={editingEmp.email} onChange={(e) => setEditingEmp({...editingEmp, email: e.target.value})} />
+                            </div>
+                            <div>
+                                 <label className="text-[10px] font-black uppercase text-slate-400 ml-2 mb-1 block italic">SĐT</label>
+                                 <input placeholder="SĐT" className="w-full bg-white p-4 rounded-xl font-bold border border-slate-100 text-sm" value={editingEmp.phone} onChange={(e) => setEditingEmp({...editingEmp, phone: e.target.value})} />
+                            </div>
+                        </div>
+                        <div>
+                             <label className="text-[10px] font-black uppercase text-slate-400 ml-2 mb-1 block italic">Địa chỉ</label>
+                             <input placeholder="Địa chỉ" className="w-full bg-white p-4 rounded-xl font-bold border border-slate-100 text-sm" value={editingEmp.address} onChange={(e) => setEditingEmp({...editingEmp, address: e.target.value})} />
+                        </div>
                     </div>
                 </div>
                 <div className="space-y-6">
                     <div className="bg-slate-50 p-6 rounded-[2.5rem] space-y-4 border border-slate-100 text-left">
-                        <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">2. Vị trí & Ngân hàng</p>
-                        <input className="w-full bg-white p-4 rounded-xl font-bold border border-slate-100 text-sm" value={editingEmp.position} onChange={(e) => setEditingEmp({...editingEmp, position: e.target.value})} />
-                        <select className="w-full bg-white p-4 rounded-xl font-bold border border-slate-100 text-sm" value={editingEmp.dep_id} onChange={(e) => setEditingEmp({...editingEmp, dep_id: e.target.value})}>
-                            {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                        </select>
+                        <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest italic">2. Vị trí & Ngân hàng</p>
+                        <div>
+                             <label className="text-[10px] font-black uppercase text-slate-400 ml-2 mb-1 block italic">Chức vụ</label>
+                             <input className="w-full bg-white p-4 rounded-xl font-bold border border-slate-100 text-sm" value={editingEmp.position} onChange={(e) => setEditingEmp({...editingEmp, position: e.target.value})} />
+                        </div>
+                        <div>
+                             <label className="text-[10px] font-black uppercase text-slate-400 ml-2 mb-1 block italic">Phòng ban</label>
+                             <select className="w-full bg-white p-4 rounded-xl font-bold border border-slate-100 text-sm" value={editingEmp.dep_id} onChange={(e) => setEditingEmp({...editingEmp, dep_id: e.target.value})}>
+                                {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                             </select>
+                        </div>
                         <div className="grid grid-cols-2 gap-4 pt-2">
-                            <input placeholder="Số TK" className="w-full bg-white p-4 rounded-xl font-bold border border-slate-100 text-sm" value={editingEmp.bank_account} onChange={(e) => setEditingEmp({...editingEmp, bank_account: e.target.value})} />
-                            <input placeholder="Ngân hàng" className="w-full bg-white p-4 rounded-xl font-bold border border-slate-100 text-sm" value={editingEmp.bank_name} onChange={(e) => setEditingEmp({...editingEmp, bank_name: e.target.value})} />
+                            <div>
+                                 <label className="text-[10px] font-black uppercase text-slate-400 ml-2 mb-1 block italic">Số TK</label>
+                                 <input placeholder="Số TK" className="w-full bg-white p-4 rounded-xl font-bold border border-slate-100 text-sm" value={editingEmp.bank_account} onChange={(e) => setEditingEmp({...editingEmp, bank_account: e.target.value})} />
+                            </div>
+                            <div>
+                                 <label className="text-[10px] font-black uppercase text-slate-400 ml-2 mb-1 block italic">Ngân hàng</label>
+                                 <input placeholder="Ngân hàng" className="w-full bg-white p-4 rounded-xl font-bold border border-slate-100 text-sm" value={editingEmp.bank_name} onChange={(e) => setEditingEmp({...editingEmp, bank_name: e.target.value})} />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="text-[10px] font-black uppercase text-slate-400 ml-2 mb-1 block italic">Lương cơ bản (VND)</label>
+                            <input type="number" className="w-full bg-white p-4 rounded-xl font-bold border border-slate-100 text-sm" value={editingEmp.base_salary} onChange={(e) => setEditingEmp({...editingEmp, base_salary: e.target.value})} />
                         </div>
                     </div>
                     <div className="flex gap-4 pt-4">
-                        <button type="button" onClick={() => setShowEditModal(false)} className="flex-1 bg-slate-100 py-5 rounded-2xl font-black uppercase text-[10px] hover:bg-slate-200">Hủy</button>
-                        <button type="submit" className="flex-1 bg-slate-900 text-white py-5 rounded-2xl font-black uppercase text-[10px] hover:bg-indigo-600 shadow-xl transition-all">Lưu thay đổi</button>
+                        <button type="button" onClick={() => setShowEditModal(false)} className="flex-1 bg-slate-100 py-5 rounded-2xl font-black uppercase text-[10px] hover:bg-slate-200 transition-all italic tracking-widest">Hủy</button>
+                        <button type="submit" className="flex-1 bg-slate-900 text-white py-5 rounded-2xl font-black uppercase text-[10px] hover:bg-indigo-600 shadow-xl transition-all italic tracking-widest">Lưu thay đổi</button>
                     </div>
                 </div>
             </form>

@@ -10,8 +10,11 @@ const EmployeeLeaves = () => {
     const [history, setHistory] = useState([]);
     const [loading, setLoading] = useState(true);
     
-    // Hàm bốc ngày hiện tại chuẩn YYYY-MM-DD
-    const getTodayStr = () => new Date().toISOString().split('T')[0];
+    // 🛠️ HÀM BỐC NGÀY HIỆN TẠI CHUẨN YYYY-MM-DD
+    const getTodayStr = () => {
+        const today = new Date();
+        return today.toISOString().split('T')[0];
+    };
 
     const [formData, setFormData] = useState({
         leave_type: 'Nghỉ phép năm',
@@ -20,12 +23,10 @@ const EmployeeLeaves = () => {
         reason: ''
     });
 
-    // 1. Fetch lịch sử đơn từ Backend employeeleaves.js
     const fetchHistory = async () => {
         if (!userLocal?.id) return;
         setLoading(true);
         try {
-            // Gọi đúng route bro vừa tạo ở BE
             const res = await axios.get(`http://localhost:5000/api/employee/leave/history/${userLocal.id}`);
             setHistory(res.data);
         } catch (err) {
@@ -40,13 +41,18 @@ const EmployeeLeaves = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // 2. Xử lý gửi đơn lên sếp
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Logic check ngày tránh bị hớ
+        // 🛠️ LỚP BẢO VỆ PHỤ (Nếu trình duyệt cũ không hỗ trợ thuộc tính min)
+        const today = getTodayStr();
+        if (formData.start_date < today) {
+            alert("❌ Bro không thể xin nghỉ cho các ngày trong quá khứ!");
+            return;
+        }
+
         if (new Date(formData.start_date) > new Date(formData.end_date)) {
-            alert("Ngày bắt đầu không được sau ngày kết thúc đâu bro ơi! 😅");
+            alert("❌ Ngày bắt đầu không được sau ngày kết thúc đâu bro ơi!");
             return;
         }
 
@@ -57,19 +63,19 @@ const EmployeeLeaves = () => {
             });
             
             alert(res.data.message);
-            // Reset form cho sạch sẽ
             setFormData({
                 leave_type: 'Nghỉ phép năm',
                 start_date: getTodayStr(),
                 end_date: getTodayStr(),
                 reason: ''
             });
-            fetchHistory(); // Reload lại bảng để thấy đơn "Pending"
-        // eslint-disable-next-line no-unused-vars
+            fetchHistory();
         } catch (err) {
-            alert("Gửi đơn thất bại rồi bro, check lại server nhé!");
+            alert(err.response?.data?.message || "Gửi đơn thất bại rồi bro!");
         }
     };
+
+    const todayStr = getTodayStr();
 
     return (
         <div className="p-4 space-y-10 animate-in fade-in duration-700 text-left">
@@ -115,16 +121,20 @@ const EmployeeLeaves = () => {
                                 <div>
                                     <label className="text-[10px] font-black uppercase text-slate-400 ml-2 mb-2 block tracking-widest italic">Từ ngày</label>
                                     <input 
-                                        type="date" required 
+                                        type="date" 
+                                        required 
+                                        min={todayStr} // 🛠️ CHẶN CHỌN NGÀY QUÁ KHỨ
                                         className="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none text-sm"
                                         value={formData.start_date}
-                                        onChange={e => setFormData({...formData, start_date: e.target.value})}
+                                        onChange={e => setFormData({...formData, start_date: e.target.value, end_date: e.target.value > formData.end_date ? e.target.value : formData.end_date})}
                                     />
                                 </div>
                                 <div>
                                     <label className="text-[10px] font-black uppercase text-slate-400 ml-2 mb-2 block tracking-widest italic">Đến ngày</label>
                                     <input 
-                                        type="date" required 
+                                        type="date" 
+                                        required 
+                                        min={formData.start_date || todayStr} // 🛠️ CHẶN CHỌN NGÀY TRƯỚC NGÀY BẮT ĐẦU
                                         className="w-full bg-slate-50 p-4 rounded-2xl font-bold border border-slate-100 outline-none text-sm"
                                         value={formData.end_date}
                                         onChange={e => setFormData({...formData, end_date: e.target.value})}
@@ -143,7 +153,7 @@ const EmployeeLeaves = () => {
                                 ></textarea>
                             </div>
 
-                            <button type="submit" className="w-full bg-slate-900 text-white py-6 rounded-[2.5rem] font-black uppercase text-[11px] tracking-[0.4em] hover:bg-indigo-600 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-3">
+                            <button type="submit" className="w-full bg-slate-900 text-white py-6 rounded-[2.5rem] font-black uppercase text-[11px] tracking-[0.4em] hover:bg-indigo-600 transition-all shadow-xl active:scale-95 flex items-center justify-center gap-3 italic">
                                 <Send size={18} /> Gửi cho quản lý
                             </button>
                         </form>

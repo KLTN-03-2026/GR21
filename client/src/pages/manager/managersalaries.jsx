@@ -119,14 +119,14 @@ const ManagerSalaries = () => {
                         </thead>
                         <tbody className="divide-y divide-slate-50 font-sans">
                             {!loading && salaryList.map((item) => (
-                                <tr key={item.id} className="hover:bg-slate-50/50 transition-all">
+                                // ✅ FIX: Dùng item.emp_id làm key để đảm bảo duy nhất và không bị null
+                                <tr key={item.emp_id} className="hover:bg-slate-50/50 transition-all">
                                     <td className="p-8">
                                         <div className="flex flex-col">
                                             <span className="font-black text-slate-800 uppercase text-sm italic leading-none">{item.full_name}</span>
                                             <span className="text-[9px] font-bold text-slate-400 uppercase mt-1">{item.position}</span>
                                         </div>
                                     </td>
-                                    {/* FIX BIẾN Ở ĐÂY NÈ BRO */}
                                     <td className="p-8 font-bold text-slate-600 text-sm">
                                         {formatVND(item.basic_salary)}
                                     </td>

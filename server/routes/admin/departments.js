@@ -43,13 +43,23 @@ router.get('/:id/employees', async (req, res) => {
     }
 });
 
-// 3. TẠO PHÒNG BAN MỚI
+// 3. TẠO PHÒNG BAN MỚI (FIXED UNDEFINED)
 router.post('/', async (req, res) => {
     const { name, description, manager_id } = req.body;
     try {
+        if (!name) {
+            return res.status(400).json({ error: "Tên phòng ban không được trống nha bro!" });
+        }
+
         const sql = "INSERT INTO departments (name, description, manager_id) VALUES (?, ?, ?)";
-        // Xử lý manager_id nếu là chuỗi rỗng thì đưa về null để khớp kiểu INT trong MySQL
-        const val = [name, description, manager_id === "" ? null : manager_id];
+        
+        // ✅ FIX: Ép tất cả về null nếu là undefined hoặc chuỗi rỗng
+        const val = [
+            name || null, 
+            (description === undefined || description === "") ? null : description, 
+            (manager_id === undefined || manager_id === "" || manager_id === null) ? null : manager_id
+        ];
+
         const [result] = await db.execute(sql, val);
         
         res.status(201).json({ 
@@ -59,11 +69,11 @@ router.post('/', async (req, res) => {
         });
     } catch (err) {
         console.error("LỖI THÊM PHÒNG BAN:", err);
-        res.status(500).json({ error: "Lỗi chèn dữ liệu vào Database" });
+        res.status(500).json({ error: "Lỗi chèn dữ liệu vào Database", details: err.message });
     }
 });
 
-// 4. CẬP NHẬT PHÒNG BAN (SỬA)
+// 4. CẬP NHẬT PHÒNG BAN (FIXED UNDEFINED)
 router.put('/:id', async (req, res) => {
     const { id } = req.params;
     const { name, description, manager_id } = req.body;
@@ -73,7 +83,15 @@ router.put('/:id', async (req, res) => {
             SET name = ?, description = ?, manager_id = ? 
             WHERE id = ?
         `;
-        const val = [name, description, manager_id === "" ? null : manager_id, id];
+        
+        // ✅ FIX: Đảm bảo không có 'undefined' lọt vào mảng tham số
+        const val = [
+            name || null, 
+            (description === undefined || description === "") ? null : description, 
+            (manager_id === undefined || manager_id === "" || manager_id === null) ? null : manager_id,
+            id
+        ];
+
         const [result] = await db.execute(sql, val);
 
         if (result.affectedRows === 0) {
@@ -82,7 +100,7 @@ router.put('/:id', async (req, res) => {
         res.status(200).json({ success: true, message: "Cập nhật thành công! ✅" });
     } catch (err) {
         console.error("LỖI CẬP NHẬT:", err);
-        res.status(500).json({ error: "Lỗi khi update dữ liệu" });
+        res.status(500).json({ error: "Lỗi khi update dữ liệu", details: err.message });
     }
 });
 
@@ -91,7 +109,6 @@ router.delete('/:id', async (req, res) => {
     const { id } = req.params;
     try {
         // Bước 1: Gỡ tất cả nhân viên khỏi phòng này (đưa dep_id về NULL) 
-        // để không bị lỗi khóa ngoại khi xóa phòng
         await db.execute("UPDATE employees SET dep_id = NULL WHERE dep_id = ?", [id]);
 
         // Bước 2: Tiến hành xóa

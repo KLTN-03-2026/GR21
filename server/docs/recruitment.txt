@@ -1,0 +1,45 @@
+DANH SÁCH VỊ TRÍ TUYỂN DỤNG - CÔNG TY HRM NHÓM 21 (Cập nhật 2026)
+
+1. Vị trí: LẬP TRÌNH VIÊN FULL STACK (Phòng Nhân sự)
+- Mức lương: Thỏa thuận (Cạnh tranh theo năng lực).
+- Mô tả công việc: 
+  + Tham gia xây dựng và phát triển hệ thống HRM tích hợp AI Chatbot.
+  + Thiết kế cơ sở dữ liệu tối ưu bằng MySQL và xử lý Logic Backend với Node.js.
+  + Phát triển giao diện người dùng hiện đại, responsive bằng ReactJS.
+- Yêu cầu: 
+  + Nắm vững kiến thức về JavaScript, MySQL và RESTful API.
+  + Có khả năng làm việc nhóm tốt, tư duy logic mạnh.
+  + Ưu tiên ứng viên có kinh nghiệm về MERN/SERN Stack.
+
+2. Vị trí: LẬP TRÌNH VIÊN REACTJS (Phòng Nhân sự)
+- Mức lương: 15 - 20 Triệu VNĐ.
+- Mô tả công việc:
+  + Chịu trách nhiệm chính về phần Front-end của các dự án phần mềm công ty.
+  + Chuyển đổi các bản thiết kế Figma thành giao diện web chạy mượt mà.
+  + Tối ưu hóa hiệu suất ứng dụng web và trải nghiệm người dùng (UX).
+- Yêu cầu:
+  + Ít nhất 1 năm kinh nghiệm làm việc thực tế với ReactJS.
+  + Biết sử dụng Tailwind CSS để xây dựng giao diện nhanh và đẹp.
+  + Hiểu biết về State Management (Redux, Context API).
+
+3. Vị trí: THỰC TẬP SINH NODE.JS (Phòng Nhân sự)
+- Mức lương: Hỗ trợ thực tập sinh (Trao đổi khi phỏng vấn).
+- Mô tả công việc:
+  + Hỗ trợ đội ngũ kỹ thuật phát triển các API cho hệ thống quản lý.
+  + Tìm hiểu và áp dụng các công nghệ mới như AI, RAG vào sản phẩm thực tế.
+  + Được đào tạo bài bản từ quy trình viết code đến triển khai hệ thống.
+- Yêu cầu:
+  + Sinh viên năm cuối hoặc mới tốt nghiệp chuyên ngành IT.
+  + Chưa cần kinh nghiệm, chỉ cần ham học hỏi và có nền tảng tư duy lập trình tốt.
+  + Biết cơ bản về JavaScript và Node.js là một lợi thế.
+
+4. Vị trí: NHÂN VIÊN ĐÁNH MÁY (Bộ phận Hỗ trợ)
+- Mức lương: 6 Triệu VNĐ.
+- Mô tả công việc:
+  + Nhập liệu dữ liệu nhân sự, hợp đồng lao động vào hệ thống HRM Nhóm 21.
+  + Soạn thảo các văn bản hành chính, thông báo nội bộ của công ty.
+  + Đảm bảo tính chính xác và bảo mật của dữ liệu đầu vào.
+- Yêu cầu:
+  + Có chứng chỉ tin học văn phòng.
+  + Thành thạo bộ công cụ Microsoft Office, đặc biệt là Word và Excel.
+  + Tốc độ đánh máy nhanh, cẩn thận, tỉ mỉ.

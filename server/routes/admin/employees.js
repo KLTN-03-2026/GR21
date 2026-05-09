@@ -1,10 +1,9 @@
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcryptjs'); // 🛠️ THÊM THƯ VIỆN MÃ HÓA
 
 module.exports = (db) => {
-    // Sử dụng promise để code gọn hơn nếu cần, nhưng t giữ nguyên kiểu callback db.query theo format của ông
-    
-    // 1. LẤY DANH SÁCH NHÂN VIÊN (JOIN PHÒNG BAN)
+    // 1. LẤY DANH SÁCH NHÂN VIÊN
     router.get('/', (req, res) => {
         const sql = `
             SELECT e.*, d.name AS department_name 
@@ -18,67 +17,74 @@ module.exports = (db) => {
         });
     });
 
-    // 2. THÊM MỚI NHÂN VIÊN (ĐÃ THÊM ĐẦY ĐỦ CÁC TRƯỜNG THÔNG TIN)
-    router.post('/', (req, res) => {
+    // 2. THÊM MỚI NHÂN VIÊN (ĐÃ TÍCH HỢP BCRYPT HASH)
+    router.post('/', async (req, res) => {
         const { 
             full_name, email, phone, dep_id, position, username, password, role,
             dob, gender, address, identity_card, bank_account, bank_name, base_salary
         } = req.body;
 
-        // Bước A: Tạo tài khoản trong bảng users trước
-        const sqlUser = "INSERT INTO users (username, password, role) VALUES (?, ?, ?)";
-        db.query(sqlUser, [username, password, role || 'employee'], (err, userRes) => {
-            if (err) {
-                console.error("❌ Lỗi tạo User:", err.message);
-                return res.status(500).send("Lỗi tạo tài khoản: " + err.message);
-            }
-
-            const newId = userRes.insertId; // ID dùng chung cho cả 2 bảng
-
-            // Bước B: Tạo nhân viên trong bảng employees với đầy đủ các cột mới
-            const sqlEmp = `
-                INSERT INTO employees (
-                    id, user_id, dep_id, full_name, position, email, phone, 
-                    dob, gender, address, identity_card, bank_account, bank_name, 
-                    base_salary, join_date
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURDATE())
-            `;
-            
-            const empValues = [
-                newId, newId, dep_id, full_name, position, email, phone,
-                dob || null, 
-                gender || 'Nam', 
-                address || null, 
-                identity_card || null, 
-                bank_account || null, 
-                bank_name || null,
-                base_salary || 0
-            ];
-
-            db.query(sqlEmp, empValues, (errEmp, empRes) => {
-                if (errEmp) {
-                    console.error("❌ Lỗi tạo Employee:", errEmp.message);
-                    db.query("DELETE FROM users WHERE id = ?", [newId]);
-                    return res.status(500).send("Lỗi tạo nhân sự: " + errEmp.message);
-                }
-
-                // Kiểm tra chức vụ để cập nhật trưởng phòng
-                const posLower = position.toLowerCase();
-                const isLeader = posLower.includes("trưởng phòng") || posLower.includes("giám đốc");
-
-                if (isLeader) {
-                    const sqlUpdateDept = "UPDATE departments SET manager_id = ? WHERE id = ?";
-                    db.query(sqlUpdateDept, [newId, dep_id], (errDept) => {
-                        res.status(201).json({ success: true, message: "Thêm nhân sự mới thành công! 👑" });
+        try {
+            // Bước 0: Kiểm tra Username duy nhất
+            const sqlCheck = "SELECT id FROM users WHERE username = ?";
+            db.query(sqlCheck, [username], async (errCheck, results) => {
+                if (errCheck) return res.status(500).send("Lỗi kiểm tra hệ thống!");
+                if (results.length > 0) {
+                    return res.status(400).json({ 
+                        success: false, 
+                        message: `Username "${username}" đã tồn tại rồi bro ơi!` 
                     });
-                } else {
-                    res.status(201).json({ success: true, message: "Thêm nhân viên và liên kết tài khoản thành công! 🚀" });
                 }
+
+                // 🛠️ BƯỚC QUAN TRỌNG: MÃ HÓA MẬT KHẨU
+                const salt = await bcrypt.genSalt(10);
+                const hashedPassword = await bcrypt.hash(password, salt);
+
+                // Bước A: Tạo tài khoản trong bảng users với mật khẩu đã HASH
+                const sqlUser = "INSERT INTO users (username, password, role) VALUES (?, ?, ?)";
+                db.query(sqlUser, [username, hashedPassword, role || 'employee'], (err, userRes) => {
+                    if (err) return res.status(500).send("Lỗi tạo tài khoản: " + err.message);
+                    
+                    const newId = userRes.insertId;
+
+                    // Bước B: Tạo hồ sơ trong bảng employees
+                    const sqlEmp = `
+                        INSERT INTO employees (id, user_id, dep_id, full_name, position, email, phone, 
+                        dob, gender, address, identity_card, bank_account, bank_name, base_salary, join_date) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURDATE())
+                    `;
+                    const empValues = [
+                        newId, newId, dep_id, full_name, position, email, phone, 
+                        dob || null, gender || 'Nam', address || null, 
+                        identity_card || null, bank_account || null, bank_name || null, 
+                        base_salary || 0
+                    ];
+
+                    db.query(sqlEmp, empValues, (errEmp) => {
+                        if (errEmp) {
+                            // Xóa User nếu tạo hồ sơ lỗi để tránh rác DB
+                            db.query("DELETE FROM users WHERE id = ?", [newId]);
+                            return res.status(500).send("Lỗi tạo hồ sơ: " + errEmp.message);
+                        }
+
+                        // Kiểm tra nếu là Trưởng phòng/Giám đốc thì cập nhật bảng departments
+                        const posLower = position ? position.toLowerCase() : "";
+                        if (posLower.includes("trưởng phòng") || posLower.includes("giám đốc")) {
+                            db.query("UPDATE departments SET manager_id = ? WHERE id = ?", [newId, dep_id], () => {
+                                res.status(201).json({ success: true, message: "Thêm sếp mới và mã hóa mật khẩu thành công! 👑" });
+                            });
+                        } else {
+                            res.status(201).json({ success: true, message: "Thêm nhân viên và mã hóa mật khẩu thành công! 🚀" });
+                        }
+                    });
+                });
             });
-        });
+        } catch (error) {
+            res.status(500).send("Lỗi server: " + error.message);
+        }
     });
 
-    // 3. CẬP NHẬT NHÂN VIÊN
+    // 3. CẬP NHẬT NHÂN VIÊN (CÓ VALIDATION)
     router.put('/:id', (req, res) => {
         const { id } = req.params;
         const { 
@@ -86,25 +92,46 @@ module.exports = (db) => {
             dob, gender, address, identity_card, bank_account, bank_name
         } = req.body;
 
+        // --- VALIDATION ---
+        const requiredFields = {
+            full_name: "Họ và tên", email: "Email", phone: "SĐT",
+            dep_id: "Phòng ban", position: "Chức vụ",
+            identity_card: "Số CCCD", address: "Địa chỉ"
+        };
+
+        for (const [key, label] of Object.entries(requiredFields)) {
+            if (!req.body[key] || String(req.body[key]).trim() === "") {
+                return res.status(400).json({ success: false, message: `${label} không được để trống!` });
+            }
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) return res.status(400).json({ message: "Email sai định dạng!" });
+
+        const phoneRegex = /^(0[3|5|7|8|9])([0-9]{8})$/;
+        if (!phoneRegex.test(phone)) return res.status(400).json({ message: "SĐT phải có 10 số VN!" });
+
+        // --- UPDATE ---
         const sqlUpdate = `
             UPDATE employees 
             SET full_name=?, email=?, phone=?, dep_id=?, position=?, 
                 dob=?, gender=?, address=?, identity_card=?, bank_account=?, bank_name=?
             WHERE id=?
         `;
+        
         db.query(sqlUpdate, [
-            full_name, email, phone, dep_id, position, 
-            dob, gender, address, identity_card, bank_account, bank_name, id
+            full_name.trim(), email.trim(), phone.trim(), dep_id, position.trim(), 
+            dob, gender, address.trim(), identity_card.trim(), bank_account, bank_name, id
         ], (err) => {
-            if (err) return res.status(500).send(err.message);
+            if (err) return res.status(500).send("Lỗi Database: " + err.message);
 
-            const posLower = position.toLowerCase();
+            const posLower = position ? position.toLowerCase() : "";
             if (posLower.includes("trưởng phòng") || posLower.includes("giám đốc")) {
-                db.query("UPDATE departments SET manager_id = ? WHERE id = ?", [id, dep_id], (err2) => {
-                    res.json({ success: true, message: "Cập nhật sếp thành công!" });
+                db.query("UPDATE departments SET manager_id = ? WHERE id = ?", [id, dep_id], () => {
+                    res.json({ success: true, message: "Cập nhật sếp và hồ sơ thành công! 👑" });
                 });
             } else {
-                res.json({ success: true, message: "Cập nhật thành công!" });
+                res.json({ success: true, message: "Cập nhật hồ sơ thành công! 🔥" });
             }
         });
     });
@@ -114,7 +141,7 @@ module.exports = (db) => {
         const { id } = req.params;
         db.query("DELETE FROM employees WHERE id = ?", [id], (err) => {
             if (err) return res.status(500).send(err.message);
-            db.query("DELETE FROM users WHERE id = ?", [id], (err2) => {
+            db.query("DELETE FROM users WHERE id = ?", [id], () => {
                 res.json({ success: true, message: "Đã xóa sạch sẽ nhân viên và tài khoản!" });
             });
         });
