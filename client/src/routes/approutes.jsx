@@ -10,6 +10,7 @@ import EmployeeLayout from '../layouts/employeelayout';
 import Navbar from '../components/Navbar';
 import Home from '../pages/home';
 import DangNhap from '../pages/dangnhap';
+import Recruitment from '../pages/recruitment';
 import ChatboxAI from '../pages/chatAI'; // - Con hàng AI Assistant của Nhóm 21
 import { NotFound, Developing } from '../components/common/statuspages';
 
@@ -24,6 +25,7 @@ import Salaries from '../pages/admin/salaries';
 import Contracts from '../pages/admin/contracts';
 import Accounts from '../pages/admin/accounts';
 import Notifications from '../pages/admin/notifications';
+import AdminRecruitment from '../pages/admin/adminrecruitment';
 
 // --- [ MANAGER PAGES ] ---
 import ManagerDashboard from '../pages/manager/managerdashboard';
@@ -53,6 +55,7 @@ const AppRoutes = ({ jobs, loading }) => {
                 ========================================== */}
                 <Route path="/" element={<><Navbar /><Home jobs={jobs} loading={loading} /></>} />
                 <Route path="/dang-nhap" element={<><Navbar /><DangNhap /></>} />
+                <Route path="/recruitment" element={<><Navbar /><Recruitment /></>} />
 
                 {/* ==========================================
                     2. ADMIN ROUTES (Chỉ dành cho Admin)
@@ -69,6 +72,7 @@ const AppRoutes = ({ jobs, loading }) => {
                     <Route path="contracts" element={<Contracts />} />
                     <Route path="accounts" element={<Accounts />} />
                     <Route path="notifications" element={<Notifications />} />
+                    <Route path="recruitment" element={<AdminRecruitment />} />
                 </Route>
 
                 {/* ==========================================

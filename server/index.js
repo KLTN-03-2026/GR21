@@ -32,9 +32,11 @@ db.connect(err => {
 // --- [ COMMON - DÙNG CHUNG ] ---
 const dangNhapRoutes = require('./routes/dangnhap')(db);
 const chatAIRoutes = require('./routes/chatAI')(db); // - Khai báo con hàng AI mới
+const recruitmentRoutes = require('./routes/recruitment')(db);
 
 app.use('/api/auth', dangNhapRoutes);
 app.use('/api/ai', chatAIRoutes); // - Endpoint dùng chung cho cả khách và nhân viên
+app.use('/api/recruitment', recruitmentRoutes);
 
 // --- [ ROLE: ADMIN ] ---
 const adminDashboard = require('./routes/admin/dashboard')(db);

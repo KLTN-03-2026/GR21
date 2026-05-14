@@ -17,6 +17,8 @@ const AdminLayout = () => {
         { id: 'salary', label: 'Quản lý lương', icon: '💰', path: '/admin/salary' },
         { id: 'contracts', label: 'Quản lý hợp đồng', icon: '📜', path: '/admin/contracts' },
         { id: 'jobs', label: 'Tin tuyển dụng', icon: '✍️', path: '/admin/jobs' },
+        { id: 'recruitment', label: 'Đơn ứng tuyển', icon: '📂', path: '/admin/recruitment' }, 
+        
         { id: 'accounts', label: 'Quản lý tài khoản', icon: '🔑', path: '/admin/accounts' },
         { id: 'notifications', label: 'Thông báo', icon: '🔔', path: '/admin/notifications' },
     ];
@@ -83,10 +85,9 @@ const AdminLayout = () => {
                         <p className="text-slate-500 font-semibold mt-1 italic uppercase tracking-widest text-[10px]">Nhóm 21 - HRM Intelligence System</p>
                     </div>
 
-                    {/* ✅ PROFILE GÓC PHẢI: HIỆN FULL NAME VÀ POSITION */}
+                    {/* ✅ PROFILE GÓC PHẢI */}
                     <div className="flex items-center gap-4 bg-white p-2 pr-8 rounded-full shadow-md border border-slate-100 animate-in slide-in-from-right duration-500 hover:shadow-lg transition-shadow cursor-pointer">
                         <div className="w-12 h-12 bg-gradient-to-tr from-indigo-500 to-violet-500 rounded-full flex items-center justify-center text-white font-black shadow-inner uppercase">
-                            {/* Hiện chữ cái đầu của tên thật, ví dụ 'L' cho Lê Xuân Khoa */}
                             {userData.full_name?.charAt(0) || 'A'}
                         </div>
                         <div className="flex flex-col">

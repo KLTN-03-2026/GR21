@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom'; // 1. Thêm useNavigate vào đây
 
 const Home = ({ jobs, loading }) => {
   const [selectedJob, setSelectedJob] = useState(null);
+  const navigate = useNavigate(); // 2. Khởi tạo navigate
 
   // Số điện thoại của bro
   const myPhoneNumber = "035534xxxx";
@@ -56,7 +57,7 @@ const Home = ({ jobs, loading }) => {
         </div>
       </section>
 
-      {/* SECTION 2: DANH SÁCH JOB - CÓ THÊM TÊN PHÒNG BAN */}
+      {/* SECTION 2: DANH SÁCH JOB */}
       <section className="px-4">
         <div className="mb-12 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
           <div>
@@ -87,7 +88,6 @@ const Home = ({ jobs, loading }) => {
               >
                 <div>
                   <div className="flex flex-col gap-2 mb-4">
-                    {/* HIỂN THỊ TÊN PHÒNG BAN Ở ĐÂY */}
                     <span className="inline-block w-fit px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase tracking-widest rounded-lg">
                       {job.department_name || 'Tuyển dụng chung'}
                     </span>
@@ -114,7 +114,7 @@ const Home = ({ jobs, loading }) => {
         )}
       </section>
 
-      {/* MODAL CHI TIẾT - CÓ THÊM THÔNG TIN PHÒNG BAN */}
+      {/* MODAL CHI TIẾT - ĐÃ SỬA NÚT GỬI CV */}
       {selectedJob && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
           <div className="bg-white w-full max-w-2xl rounded-[3.5rem] shadow-2xl overflow-hidden animate-in zoom-in duration-300">
@@ -149,8 +149,10 @@ const Home = ({ jobs, loading }) => {
                   <span className="text-indigo-600 font-bold uppercase text-xs tracking-widest font-sans">Đang mở tuyển 🟢</span>
                 </div>
               </div>
+              
+              {/* THAY ĐỔI Ở ĐÂY: KHÔNG CÒN BẢO TRÌ NỮA 🚀 */}
               <button 
-                onClick={() => alert("Chức năng ứng tuyển đang được bảo trì bro ơi!")}
+                onClick={() => navigate('/recruitment')}
                 className="w-full bg-slate-900 text-white py-6 rounded-[2rem] font-black text-xl hover:bg-indigo-600 transition shadow-2xl active:scale-95 uppercase tracking-widest"
               >
                 Gửi CV ngay
